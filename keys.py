@@ -3,15 +3,15 @@ import json
 import logging
 import sys
 from binance.spot import Spot as Client
-from binance.lib.utils import config_logging
+from utils import configlog
 
 
-
+configlog()
 validatekeys = []
 
 
 def callapi(apikey, apisecret):
-    spot_client = Client(apikey, apisecret, show_header=True)
+    spot_client = Client(apikey+"0", apisecret, show_header=True)
     try:
         response = spot_client.api_key_permissions()
         keypermissresponse = response['data']
