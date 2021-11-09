@@ -17,7 +17,7 @@ def getpermissions(apikey, apisecret):
         keypermissresponse = response['data']
         return keypermissresponse
     except Exception as e:
-        print("Something went wrong:")
+        print("Something went wrong:" + e)
         logging.error(e)
         sys.exit()
 
@@ -44,7 +44,7 @@ def getbalance(apikey, apisecret):
             coinsbalance.append(data)
         return coinsbalance
     except Exception as e:
-        print("Something went wrong:")
+        print("Something went wrong:" + e)
         logging.error(e)
         sys.exit()
 
