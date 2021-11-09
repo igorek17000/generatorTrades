@@ -7,11 +7,11 @@ from utils import configlog
 
 
 configlog()
-validatekeys = []
+validatekeys = [[],[]]
 
 
-def callapi(apikey, apisecret):
-    spot_client = Client(apikey+"0", apisecret, show_header=True)
+def getpermissions(apikey, apisecret):
+    spot_client = Client(apikey, apisecret, show_header=True)
     try:
         response = spot_client.api_key_permissions()
         keypermissresponse = response['data']
@@ -23,12 +23,30 @@ def callapi(apikey, apisecret):
 
 
 def validatepermissions(apikey, apisecret):
-    permissions = callapi(apikey, apisecret)
+    permissions = getpermissions(apikey, apisecret)
     if (permissions['enableSpotAndMarginTrading']) and (not permissions['enableWithdrawals']):
         return True
     else:
         return False
 
+def getbalance(apikey, apisecret):
+    coinsbalance= []
+    spot_client = Client(apikey, apisecret)
+    try:
+        response = spot_client.account()
+        spotbalance = response['balances']
+        validspotbalance = [x
+                            for x in spotbalance
+                            if float(x['free']) > 0 or float(x['locked']) > 0
+                            ]
+        for coin in validspotbalance:
+            data = coin['asset'] + ";" + coin['free'] + ";" + coin['locked']
+            coinsbalance.append(data)
+        return coinsbalance
+    except Exception as e:
+        print("Something went wrong:")
+        logging.error(e)
+        sys.exit()
 
 def retrievevalidkeys():
     keyarchive = 'keys.csv'
@@ -38,11 +56,12 @@ def retrievevalidkeys():
             for linha in reader:
                 print("user's apiKeys validation")
                 if validatepermissions(linha[0], linha[1]):
+                    coinsbalance = getbalance(linha[0], linha[1])
                     clientskeys = linha[0] + ";" + linha[1]
-                    validatekeys.append(clientskeys)
+                    validatekeys.append(clientskeys,coinsbalance)
 
             return validatekeys
         except Exception as e:
-            print("Something went wrong with key's archive:")
+            print("Something went wrong with the list :" + e)
             logging.error(e)
             sys.exit()
