@@ -7,7 +7,7 @@ from utils import configlog
 
 
 configlog()
-validatekeys = [[],[]]
+validatekeys = []
 
 
 def getpermissions(apikey, apisecret):
@@ -30,19 +30,28 @@ def validatepermissions(apikey, apisecret):
         return False
 
 def getbalance(apikey, apisecret):
-    coinsbalance= []
+    coinslocked = ''
+    usdtfree = ''
     spot_client = Client(apikey, apisecret)
     try:
         response = spot_client.account()
         spotbalance = response['balances']
-        validspotbalance = [x
+        usdtinfo = [x
                             for x in spotbalance
-                            if float(x['free']) > 0 or float(x['locked']) > 0
+                            if float(x['free']) > 0 and x['asset'] == 'USDT'
                             ]
-        for coin in validspotbalance:
-            data = coin['asset'] + ";" + coin['free'] + ";" + coin['locked']
-            coinsbalance.append(data)
-        return coinsbalance
+        for usdt in usdtinfo:
+            usdtfree = usdt['free']
+        lockbalance = [x
+                       for x in spotbalance
+                       if float(x['free']) > 0 or float(x['locked']) > 0
+                       ]
+        for coin in lockbalance:
+            coinslocked = coinslocked + coin['asset']+';'
+        coinslocked= coinslocked[:-1]
+
+
+        return usdtfree+';'+coinslocked
     except Exception as e:
         print("Something went wrong:" + e)
         logging.error(e)
@@ -58,7 +67,7 @@ def retrievevalidkeys():
                 if validatepermissions(linha[0], linha[1]):
                     coinsbalance = getbalance(linha[0], linha[1])
                     clientskeys = linha[0] + ";" + linha[1]
-                    validatekeys.append(clientskeys,coinsbalance)
+                    validatekeys.append(clientskeys+';'+coinsbalance)
 
             return validatekeys
         except Exception as e:
