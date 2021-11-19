@@ -24,27 +24,29 @@ def organizedata(data):
 
 
 def retrievecoinsvalue():
-    # use creds to create a client to interact with the Google Drive API
+
+
+
+def makeorder():
+    params = {
+        "symbol": "BTCUSDT",
+        "side": "BUY",
+        "type": "MARKET",
+        "quoteOrderQty": "100"
+    }
+
+    client = Client(key, secret)
+
     try:
-        scope = ['https://spreadsheets.google.com/feeds',
-             'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
-        client = gspread.authorize(creds)
-
-        sheet = client.open("test_coins").sheet1
-
-        list_of_hashes = sheet.get_all_records()
-
-
+        response = client.new_order_test(**params)
+        logging.info(response)
     except Exception as e:
-            print("Something went wrong when retriving coins value" + e)
-            logging.error(e)
-            sys.exit()
+        print("Something went wrong when make order" + e)
+        logging.error(e)
+        sys.exit()
 
 
-
-
-
+retrievecoinsvalue()
 def createorder(data):
     """organizedata(data)
     makeorder()"""
