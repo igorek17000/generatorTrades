@@ -8,8 +8,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 from utils import configlog
 
 configlog()
-validatekeys = []
-
 clientsdata = {}
 
 
@@ -54,12 +52,10 @@ def getbalance(apikey, apisecret):
 
 
 def organizedata(balance, operations):
+    strategy = {}
     if balance['Membro'] in clientsdata:
         clientdata = clientsdata.get(balance['Membro'])
-    else:
-        clientdata = {'membro': balance['Membro'], 'api_key': balance['api_key'], 'api_secret': balance['api_secret']}
-
-        strategies = {'strategy': balance['Estrategia'], 'capital_disponivel': balance['capital_disponivel']}
+        strategy = {'strategy': balance['Estrategia'], 'capital_disponivel': balance['capital_disponivel']}
         coins = []
 
         for operation in operations:
@@ -73,8 +69,27 @@ def organizedata(balance, operations):
                     'SegundoAlvo': operation['SegundoAlvo'],
                     'Stop': operation['Stop']}
             coins.append(coin)
-        strategies['coins'] = coins
-        clientdata['strategies'] = strategies
+        strategy['coins'] = coins
+        clientdata[balance['Estrategia']] = strategy
+        clientsdata.update(clientdata)
+    else:
+        clientdata = {'membro': balance['Membro'], 'api_key': balance['api_key'], 'api_secret': balance['api_secret']}
+        strategy = {'strategy': balance['Estrategia'], 'capital_disponivel': balance['capital_disponivel']}
+        coins = []
+
+        for operation in operations:
+            coin = {'Moeda': operation['Moeda'],
+                    'FlagCompraValida': operation['FlagCompraValida'],
+                    'TipoCompra': operation['TipoCompra'],
+                    'ValorCompra': operation['ValorCompra'],
+                    'Aporte%': operation['Aporte%'],
+                    'Aporte($)': operation['Aporte($)'],
+                    'PrimeiroAlvo': operation['PrimeiroAlvo'],
+                    'SegundoAlvo': operation['SegundoAlvo'],
+                    'Stop': operation['Stop']}
+            coins.append(coin)
+        strategy['coins'] = coins
+        clientdata[balance['Estrategia']] = strategy
         clientsdata[balance['Membro']] = clientdata
 
 
@@ -108,7 +123,7 @@ def retrievevalidkeys():
                              if (x['Membro'] == data['Membro']) and (x['Estrategia'] == data['Estrategia'])
                              ]
                 organizedata(data, operation)
-                return
+        return clientsdata
 
     except Exception as e:
         print("Something went wrong when retriving client's credentials " + e)
