@@ -1,52 +1,37 @@
-import csv
+import json
+
+from binance.spot import Spot as Client
 import logging
 import sys
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-
 from utils import configlog
 
-apikey = ''
-apisecret = ''
-usdtBalance = ''
-ordersprice = 0
-coinsLocked = []
+def organizeparams(coins,freebalance):
+    params = {}
+    for coin in coins:
+        params [coin['Moeda']]= {
+            "symbol": coin['Moeda'],
+            "side": "BUY" if coin['FlagCompraValida'] == 'S' else 'STOPLIMIT',
+            "type": "MARKET",
+            "quoteOrderQty": str("{0:.2f}".format(float(freebalance)/(float(coin['Aporte%'])/100 )))
+        }
+    return params
 
 
-def organizedata(data):
-    datas = data.split(';')
-    apikey = datas[0]
-    apisecret = datas[1]
-    usdtBalance = datas[2]
-    ordersprice = float(usdtBalance) / 4
-    for x in range(3, len(datas) - 1):
-        coinsLocked.append(datas[x])
+def adjustparam(dataclient):
 
+    strategies = dataclient['strategies']
+    for data in strategies:
+        params = organizeparams(strategies[data]['coins'], strategies[data]['capital_disponivel'])
+        makeorder(dataclient, params)
 
-def retrievecoinsvalue():
-
-
-
-def makeorder():
-    params = {
-        "symbol": "BTCUSDT",
-        "side": "BUY",
-        "type": "MARKET",
-        "quoteOrderQty": "100"
-    }
-
-    client = Client(key, secret)
-
+def makeorder(dataclient,params):
+    client = Client(dataclient['api_key'], dataclient['api_secret'])
     try:
-        response = client.new_order_test(**params)
-        logging.info(response)
+        for param in params:
+            orderdata = params[param]
+            response = client.new_order_test(**orderdata)
+            logging.info(response)
     except Exception as e:
         print("Something went wrong when make order" + e)
         logging.error(e)
         sys.exit()
-
-
-retrievecoinsvalue()
-def createorder(data):
-    """organizedata(data)
-    makeorder()"""

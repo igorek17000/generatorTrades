@@ -43,8 +43,6 @@ def getbalance(apikey, apisecret):
         sheet = client.open("Contato_Bot_Messias").get_worksheet(1)
         operations = sheet.get_all_records()
 
-
-
     except Exception as e:
         print("Something went wrong when retriving coins value" + e)
         logging.error(e)
@@ -53,43 +51,30 @@ def getbalance(apikey, apisecret):
 
 def organizedata(balance, operations):
     strategy = {}
+    coins = []
+    strategy = {'strategy': balance['Estrategia'], 'capital_disponivel': balance['capital_disponivel'].replace('$', '').replace('.', '').replace(',', '.')}
+    for operation in operations:
+        coin = {'Moeda': operation['Moeda'],
+                'FlagCompraValida': operation['FlagCompraValida'],
+                'TipoCompra': operation['TipoCompra'],
+                'ValorCompra': "-" if operation['ValorCompra'] == '-' else operation['ValorCompra'].replace('$', '').replace('.', '').replace(',', '.'),
+                'Aporte%': operation['Aporte%'].replace('%', '').replace(',', '.'),
+                'Aporte($)': operation['Aporte($)'].replace('$', '').replace('.', '').replace(',', '.'),
+                'PrimeiroAlvo': operation['PrimeiroAlvo'].replace('$', '').replace('.', '').replace(',', '.'),
+                'SegundoAlvo': operation['SegundoAlvo'].replace('$', '').replace('.', '').replace(',', '.'),
+                'Stop': operation['Stop'].replace('$', '').replace('.', '').replace(',', '.')}
+        coins.append(coin)
+
     if balance['Membro'] in clientsdata:
         clientdata = clientsdata.get(balance['Membro'])
-        strategy = {'strategy': balance['Estrategia'], 'capital_disponivel': balance['capital_disponivel']}
-        coins = []
-
-        for operation in operations:
-            coin = {'Moeda': operation['Moeda'],
-                    'FlagCompraValida': operation['FlagCompraValida'],
-                    'TipoCompra': operation['TipoCompra'],
-                    'ValorCompra': operation['ValorCompra'],
-                    'Aporte%': operation['Aporte%'],
-                    'Aporte($)': operation['Aporte($)'],
-                    'PrimeiroAlvo': operation['PrimeiroAlvo'],
-                    'SegundoAlvo': operation['SegundoAlvo'],
-                    'Stop': operation['Stop']}
-            coins.append(coin)
         strategy['coins'] = coins
-        clientdata[balance['Estrategia']] = strategy
+        clientdata['strategies'][balance['Estrategia']] = strategy
         clientsdata.update(clientdata)
     else:
         clientdata = {'membro': balance['Membro'], 'api_key': balance['api_key'], 'api_secret': balance['api_secret']}
-        strategy = {'strategy': balance['Estrategia'], 'capital_disponivel': balance['capital_disponivel']}
-        coins = []
-
-        for operation in operations:
-            coin = {'Moeda': operation['Moeda'],
-                    'FlagCompraValida': operation['FlagCompraValida'],
-                    'TipoCompra': operation['TipoCompra'],
-                    'ValorCompra': operation['ValorCompra'],
-                    'Aporte%': operation['Aporte%'],
-                    'Aporte($)': operation['Aporte($)'],
-                    'PrimeiroAlvo': operation['PrimeiroAlvo'],
-                    'SegundoAlvo': operation['SegundoAlvo'],
-                    'Stop': operation['Stop']}
-            coins.append(coin)
+        clientdata['strategies'] = {}
         strategy['coins'] = coins
-        clientdata[balance['Estrategia']] = strategy
+        clientdata['strategies'][balance['Estrategia']] = strategy
         clientsdata[balance['Membro']] = clientdata
 
 
