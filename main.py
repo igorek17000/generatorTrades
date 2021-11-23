@@ -1,12 +1,13 @@
 import logging
-from keys import retrievevalidkeys
-from order import adjustparam
+from keys import retrievevalidclientsinfos
+from order import makeorder
+
 from utils import configlog
 
 configlog()
 try:
-    keyslist = retrievevalidkeys()
+    keyslist = retrievevalidclientsinfos()
     for data in keyslist:
-        adjustparam(keyslist[data])
+        makeorder(keyslist[data])
 except Exception as e:
     logging.error(e)

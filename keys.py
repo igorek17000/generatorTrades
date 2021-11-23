@@ -69,7 +69,7 @@ def organizedata(balance, operations):
         clientdata = clientsdata.get(balance['Membro'])
         strategy['coins'] = coins
         clientdata['strategies'][balance['Estrategia']] = strategy
-        clientsdata.update(clientdata)
+        clientsdata[balance['Membro']].update(clientdata)
     else:
         clientdata = {'membro': balance['Membro'], 'api_key': balance['api_key'], 'api_secret': balance['api_secret']}
         clientdata['strategies'] = {}
@@ -78,7 +78,7 @@ def organizedata(balance, operations):
         clientsdata[balance['Membro']] = clientdata
 
 
-def retrievevalidkeys():
+def retrievevalidclientsinfos():
     try:
         scope = ['https://spreadsheets.google.com/feeds',
                  'https://www.googleapis.com/auth/drive']
