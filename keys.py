@@ -31,24 +31,6 @@ def validatepermissions(apikey, apisecret):
         return False
 
 
-def getbalance(apikey, apisecret):
-    try:
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
-        client = gspread.authorize(creds)
-
-        sheet = client.open("Contato_Bot_Messias").get_worksheet(0)
-        balances = sheet.get_all_records()
-        sheet = client.open("Contato_Bot_Messias").get_worksheet(1)
-        operations = sheet.get_all_records()
-
-    except Exception as e:
-        print("Something went wrong when retriving coins value" + e)
-        logging.error(e)
-        sys.exit()
-
-
 def organizedata(balance, operations):
     strategy = {}
     coins = []
