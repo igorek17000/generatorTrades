@@ -6,6 +6,7 @@ from utils import configlog
 
 configlog()
 try:
+    print("retriving datas from sheets...")
     keyslist = retrievevalidclientsinfos()
     for data in keyslist:
         makeorder(keyslist[data])
