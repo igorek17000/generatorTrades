@@ -218,7 +218,7 @@ def makeorder(dataclient):
     strategies = dataclient['strategies']
     try:
         for data in strategies:
-            print("organizing orders from client:" + dataclient['membro'] + "indice:" + data)
+            print("organizing orders from client:" + dataclient['membro'] + " index:" + data)
             params = organizeordersparams(strategies[data]['coins'],
                                           strategies[data]['capital_disponivel'])
             print("sending buy orders from client:" + dataclient['membro'] + "indice:" + data)
@@ -226,6 +226,8 @@ def makeorder(dataclient):
             print("sending oco orders from client:" + dataclient['membro'] + "indice:" + data)
             sendoco(params['SELLOCO'], dataclient['membro'], data, apikey, apisecret)
 
+            strategies[data]['orders'] = params
+        return dataclient
     except Exception as e:
         print("Something went wrong when make order " + e)
         logging.error("Something went wrong when make order " + e)
@@ -242,6 +244,10 @@ def sendorder(params, membro, strategy, apikey, apisecret):
             if response['status'] == 'FILLED':
                 quantity = response['executedQty']
                 reorganizequantity(params['SELLOCO'], params['BUY'][param]['symbol'], float(quantity))
+                params['BUY'][param]['executed'] = 1
+            else:
+                params['BUY'][param]['orderId'] = response['orderId']
+                params['BUY'][param]['executed'] = 0
     except Exception as e:
         print("Something went wrong when send sell orders " + e)
         logging.error("Something went wrong when send sell orders  " + e)
@@ -270,7 +276,7 @@ def sendoco(params, membro, strategy, apikey, apisecret):
                                    'stopLimitPrice': params[param]['stopLimitPrice'],
                                    'stopLimitTimeInForce': params[param]['stopLimitTimeInForce'], }
                     responseoco['secondTarget'] = client.new_oco_order(**paramsecond)
-                elif param['canCreateOco']:
+                elif params[param]['canCreateOco']:
                     paramfirst = {'symbol': params[param]['symbol'], 'side': params[param]['side'],
                                   'quantity': params[param]['firstTarget']['quantity'],
                                   'price': params[param]['firstTarget']['price'],
@@ -283,6 +289,7 @@ def sendoco(params, membro, strategy, apikey, apisecret):
                 logging.error("Something went wrong when send oco for member:"+membro+" and coin:" +params[param]['symbol'] + "the quantityXprice is lower than min_notional")
             for response in responseoco:
                 createorderlogfileoco(membro, strategy, responseoco[response])
+
     except Exception as e:
         print("Something went wrong when send sell orders " + e)
         logging.error("Something went wrong when send sell orders  " + e)
