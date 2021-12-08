@@ -1,4 +1,5 @@
 import csv
+import math
 
 import os
 
@@ -50,7 +51,7 @@ def getquantity(quantity, symbol):
         exchange_info = exchangeinfo(apikey, apisecret, symbol)
         lot_size = exchange_info['symbols'][0]['filters'][2]['minQty']
         precision = (str(lot_size).split('.')[1]).find('1') + 1
-        return format(float(quantity), '.' + str(precision) + 'f')
+        return math.floor(float(quantity) * 10 ** precision) / 10 ** precision
     except Exception as e:
         print("Something went wrong when validate coin's quantity " + e)
         logging.error("Something went wrong when validate coin's quantity " + e)
@@ -70,7 +71,7 @@ def formatpriceoco(price, symbol):
         exchange_info = exchangeinfo(apikey, apisecret, symbol)
         lot_size = exchange_info['symbols'][0]['filters'][0]['minPrice']
         precision = (str(lot_size).split('.')[1]).find('1') + 1
-        return format(float(price), '.' + str(precision) + 'f')
+        return math.floor(float(price) * 10 ** precision) / 10 ** precision
 
     except Exception as e:
         print("Something went wrong when validate coin's quantity " + e)
