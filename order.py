@@ -106,8 +106,7 @@ def createbuyorder(params, coin, investimentbalance):
     elif gettype(coin) == 'STOP_LOSS_LIMIT':
         params['BUY'][coin['Moeda']]["timeInForce"] = "GTC"
         params['BUY'][coin['Moeda']]["stopPrice"] = float(coin['ValorCompra'])
-        params['BUY'][coin['Moeda']]["price"] = float(coin['ValorCompra']) + (
-                float(coin['ValorCompra']) * 0.005)
+        params['BUY'][coin['Moeda']]["price"] = float(coin['ValorCompra'])
         params['BUY'][coin['Moeda']]["quantity"] = getquantity(float(
             investimentbalance / float(params['BUY'][coin['Moeda']]['price'])), coin['Moeda'])
     elif gettype(coin) == 'LIMIT':
@@ -143,9 +142,9 @@ def createocoorder(params, coin, investimentbalance):
         params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = 0
         params['SELLOCO'][coin['Moeda']]['secondTarget']["quantity"] = 0
         params['SELLOCO'][coin['Moeda']]['firstTarget']["price"] = formatpriceoco(
-            float(coin['PrimeiroAlvo']) - (float(coin['PrimeiroAlvo']) * 0.005), coin['Moeda'])
+            float(coin['PrimeiroAlvo']), coin['Moeda'])
         params['SELLOCO'][coin['Moeda']]['secondTarget']["price"] = formatpriceoco(
-            float(coin['SegundoAlvo']) - (float(coin['SegundoAlvo']) * 0.005), coin['Moeda'])
+            float(coin['SegundoAlvo']) , coin['Moeda'])
     else:
         params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = getquantity(apikey, apisecret, float(
             investimentbalance / float(params['SELLOCO'][coin['Moeda']]['price']) / 2), coin['Moeda'])
@@ -170,15 +169,20 @@ def organizeordersparams(coins, freebalance):
     return params
 
 
-def createorderlogfilebuy(membro, estrategia, orderresponse):
+def createorderlogfilebuy(membro, estrategia, orderresponse,quotOrderQty):
     date = datetime.today().strftime('%d-%m-%Y')
     archivename = membro + estrategia + date + "BUY.csv"
-    logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['price'], orderresponse['executedQty'],
-               orderresponse['status'], orderresponse['type'], orderresponse['side']]
+    if orderresponse['type'] == 'MARKET':
+        logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['price'], quotOrderQty, orderresponse['executedQty'],
+                   orderresponse['status'], orderresponse['type'], orderresponse['side']]
+    else:
+        logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['price'], 0,
+                   orderresponse['executedQty'],
+                   orderresponse['status'], orderresponse['type'], orderresponse['side']]
     if orderresponse['status'] == 'FILLED':
         logdata.append(orderresponse['fills'][0]['commission'])
         logdata.append(orderresponse['fills'][0]['commissionAsset'])
-    header = ['symbol', 'orderId', 'price', 'executedQty', 'status', 'type', 'side', 'commission', 'commissionAsset']
+    header = ['symbol', 'orderId', 'price', 'quotOrderQty', 'executedQty', 'status', 'type', 'side', 'commission', 'commissionAsset']
     createarchive(archivename, header, logdata)
 
 def createorderlogfileoco(membro, estrategia, orderresponse):
@@ -241,7 +245,10 @@ def sendorder(params, membro, strategy, apikey, apisecret):
         for param in params['BUY']:
             orderdata = params['BUY'][param]
             response = client.new_order(**orderdata)
-            createorderlogfilebuy(membro, strategy, response)
+            if params['BUY'][param]['type'] == 'MARKET':
+                createorderlogfilebuy(membro, strategy, response,params['BUY'][param]['quotOrderQty'])
+            else:
+                createorderlogfilebuy(membro, strategy, response)
             if response['status'] == 'FILLED':
                 quantity = response['executedQty']
                 reorganizequantity(params['SELLOCO'], params['BUY'][param]['symbol'], float(quantity))
