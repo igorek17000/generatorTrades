@@ -16,15 +16,18 @@ def havemissingocos(keylist):
         if len(filteredorders) == 0:
             buyOrders.clear()
         else:
+            buyOrders.clear()
             buyOrders.update(filteredorders)
+
             count += 1
     return count
 try:
     print("retriving datas from sheets...")
     keyslist = retrievevalidclientsinfos()
     for data in keyslist:
-        dataclient = makeorder(keyslist[data])
-        keyslist[data].update(dataclient)
+     dataclient = makeorder(keyslist[data])
+     keyslist[data].update(dataclient)
+
 
     if havemissingocos(keyslist) > 0:
         print("starting searching for limit and stop loss limit buy orders ")

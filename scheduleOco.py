@@ -67,15 +67,14 @@ def sendoco(params, membro, strategy, apikey, apisecret):
         logging.error("Something went wrong when send sell orders  " + e)
 
 
-@sched.scheduled_job('interval', minutes=1)
+@sched.scheduled_job('interval', minutes=10)
 def timed_job():
     for client in clientsdata:
         print("looking for sell orders from client " + client)
         for data in clientsdata[client]['strategies']['diario']['orders']['BUY']:
             clientbuyorder= clientsdata[client]['strategies']['diario']['orders']['BUY'][data]
-            quantity = getquantity(clientbuyorder['orderId'], data, clientsdata[client]['api_key'], clientsdata[client]['api_secret'])
+            quantity = float(getquantity(clientbuyorder['orderId'], data, clientsdata[client]['api_key'], clientsdata[client]['api_secret']))
             if quantity > 0:
-                order.reorganizequantity()
                 clientsdata[client]['strategies']['diario']['orders']['BUY'][data]['executed'] = 1
                 sellorders= clientsdata[client]['strategies']['diario']['orders']['SELLOCO']
                 order.reorganizequantity(sellorders,data,quantity)
@@ -84,7 +83,10 @@ def timed_job():
                     sendoco(sellorder[data], client, 'diario', clientsdata[client]['api_key'], clientsdata[client]['api_secret'])
         buyOrders = clientsdata[client]['strategies']['diario']['orders']['BUY']
         filteredorders = dict(filter(lambda elem: elem[1]['executed'] < 1, buyOrders.items()))
+        buyOrders.clear()
         buyOrders.update(filteredorders)
+        #verificar se o cliente está vazio e tirar da lista
+        #se lista vazia parar execução
 
 def inicializevariables(data):
     global clientsdata

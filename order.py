@@ -80,8 +80,9 @@ def formatpriceoco(price, symbol):
 
 
 def reorganizequantity(params, moeda, quantity):
-    params[moeda]['firstTarget']["quantity"] = getquantity(quantity / 2, moeda)
-    params[moeda]['secondTarget']["quantity"] = getquantity(quantity / 2, moeda)
+    quantityplustax = quantity * 0.999
+    params[moeda]['firstTarget']["quantity"] = getquantity(quantityplustax / 2, moeda)
+    params[moeda]['secondTarget']["quantity"] = getquantity(quantityplustax / 2, moeda)
     params[moeda]['canCreateOco'] = 1
 
 
@@ -172,14 +173,14 @@ def organizeordersparams(coins, freebalance):
 def createorderlogfilebuy(membro, estrategia, orderresponse,quotOrderQty):
     date = datetime.today().strftime('%d-%m-%Y')
     archivename = membro + estrategia + date + "BUY.csv"
-    if orderresponse['type'] == 'MARKET':
+    if quotOrderQty > 0:
         logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['price'], quotOrderQty, orderresponse['executedQty'],
                    orderresponse['status'], orderresponse['type'], orderresponse['side']]
     else:
-        logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['price'], 0,
-                   orderresponse['executedQty'],
-                   orderresponse['status'], orderresponse['type'], orderresponse['side']]
-    if orderresponse['status'] == 'FILLED':
+        logdata = [orderresponse['symbol'], orderresponse['orderId'], 0, 0,
+                   0,
+                   0, 0, 0]
+    if quotOrderQty > 0 and orderresponse['status'] == 'FILLED':
         logdata.append(orderresponse['fills'][0]['commission'])
         logdata.append(orderresponse['fills'][0]['commissionAsset'])
     header = ['symbol', 'orderId', 'price', 'quotOrderQty', 'executedQty', 'status', 'type', 'side', 'commission', 'commissionAsset']
@@ -203,7 +204,7 @@ def createorderlogfileoco(membro, estrategia, orderresponse):
             logdata.append(report['stopPrice'])
         createarchive(archivename, header, logdata)
         logdata.clear()
-def createarchive(archivename,header,logdata):
+def  createarchive(archivename,header,logdata):
     file_exists = os.path.exists(archivename)
     try:
         with open(archivename, 'a', newline='') as f:
@@ -246,10 +247,10 @@ def sendorder(params, membro, strategy, apikey, apisecret):
             orderdata = params['BUY'][param]
             response = client.new_order(**orderdata)
             if params['BUY'][param]['type'] == 'MARKET':
-                createorderlogfilebuy(membro, strategy, response,params['BUY'][param]['quotOrderQty'])
+                createorderlogfilebuy(membro, strategy, response,params['BUY'][param]['quoteOrderQty'])
             else:
-                createorderlogfilebuy(membro, strategy, response)
-            if response['status'] == 'FILLED':
+                createorderlogfilebuy(membro, strategy, response,0)
+            if params['BUY'][param]['type'] == 'MARKET' and response['status'] == 'FILLED':
                 quantity = response['executedQty']
                 reorganizequantity(params['SELLOCO'], params['BUY'][param]['symbol'], float(quantity))
                 params['BUY'][param]['executed'] = 1
