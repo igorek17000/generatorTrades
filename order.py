@@ -230,7 +230,10 @@ def makeorder(dataclient):
             print("sending buy orders from client:" + dataclient['membro'] + "indice:" + data)
             sendorder(params, dataclient['membro'], data, apikey, apisecret)
             print("sending oco orders from client:" + dataclient['membro'] + "indice:" + data)
-            sendoco(params['SELLOCO'], dataclient['membro'], data, apikey, apisecret)
+
+            filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, params['SELLOCO'].items()))
+
+            sendoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
 
             strategies[data]['orders'] = params
         return dataclient
