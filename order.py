@@ -222,37 +222,37 @@ def makeorder(dataclient):
     apikey = dataclient['api_key']
     apisecret = dataclient['api_secret']
     strategies = dataclient['strategies']
-    try:
-        for data in strategies:
-            print("organizing orders from client:" + dataclient['membro'] + " index:" + data)
-            params = organizeordersparams(strategies[data]['coins'],
-                                          strategies[data]['capital_disponivel'])
-            print("sending buy orders from client:" + dataclient['membro'] + "indice:" + data)
-            sendorder(params, dataclient['membro'], data, apikey, apisecret)
-            print("sending oco orders from client:" + dataclient['membro'] + "indice:" + data)
 
-            filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, params['SELLOCO'].items()))
+    for data in strategies:
+        print("organizing orders from client:" + dataclient['membro'] + " index:" + data)
+        params = organizeordersparams(strategies[data]['coins'],
+                                      strategies[data]['capital_disponivel'])
+        print("sending buy orders from client:" + dataclient['membro'] + "indice:" + data)
+        sendorder(params, dataclient['membro'], data, apikey, apisecret)
+        print("sending oco orders from client:" + dataclient['membro'] + "indice:" + data)
 
-            sendoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
+        filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, params['SELLOCO'].items()))
 
-            strategies[data]['orders'] = params
-        return dataclient
-    except Exception as e:
-        print("Something went wrong when make order " + e)
-        logging.error("Something went wrong when make order " + e)
-        sys.exit()
+        sendoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
+
+        strategies[data]['orders'] = params
+    return dataclient
+
+
 
 
 def sendorder(params, membro, strategy, apikey, apisecret):
     client = Client(apikey, apisecret)
-    try:
-        for param in params['BUY']:
-            orderdata = params['BUY'][param]
+
+    for param in params['BUY']:
+
+        orderdata = params['BUY'][param]
+        try:
             response = client.new_order(**orderdata)
             if params['BUY'][param]['type'] == 'MARKET':
-                createorderlogfilebuy(membro, strategy, response,params['BUY'][param]['quoteOrderQty'])
+                createorderlogfilebuy(membro, strategy, response, params['BUY'][param]['quoteOrderQty'])
             else:
-                createorderlogfilebuy(membro, strategy, response,0)
+                createorderlogfilebuy(membro, strategy, response, 0)
             if params['BUY'][param]['type'] == 'MARKET' and response['status'] == 'FILLED':
                 quantity = response['executedQty']
                 reorganizequantity(params['SELLOCO'], params['BUY'][param]['symbol'], float(quantity))
@@ -260,9 +260,11 @@ def sendorder(params, membro, strategy, apikey, apisecret):
             else:
                 params['BUY'][param]['orderId'] = response['orderId']
                 params['BUY'][param]['executed'] = 0
-    except Exception as e:
-        print("Something went wrong when send sell orders " + e)
-        logging.error("Something went wrong when send sell orders  " + e)
+        except Exception as e:
+            pass
+            print("Something went wrong when buy orders, for details look to error.log")
+            logging.error("Something went wrong when buy coins for member:" + membro + " and coin: " + orderdata[
+                'symbol'])
 
 
 def sendoco(params, membro, strategy, apikey, apisecret):
