@@ -174,29 +174,32 @@ def createorderlogfilebuy(membro, estrategia, orderresponse,quotOrderQty):
     date = datetime.today().strftime('%d-%m-%Y')
     archivename = membro + estrategia + date + "BUY.csv"
     if quotOrderQty > 0:
-        logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['price'], quotOrderQty, orderresponse['executedQty'],
+        logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['clientOrderId'], orderresponse['price'], quotOrderQty, orderresponse['executedQty'],
                    orderresponse['status'], orderresponse['type'], orderresponse['side']]
     else:
         logdata = [orderresponse['symbol'], orderresponse['orderId'], 0, 0,
                    0,
-                   0, 0, 0]
+                   0, '', '', '', 0, 0]
     if quotOrderQty > 0 and orderresponse['status'] == 'FILLED':
         logdata.append(orderresponse['fills'][0]['commission'])
         logdata.append(orderresponse['fills'][0]['commissionAsset'])
-    header = ['symbol', 'orderId', 'price', 'quotOrderQty', 'executedQty', 'status', 'type', 'side', 'commission', 'commissionAsset']
+    header = ['symbol', 'orderId', 'clientOrderId', 'price', 'quotOrderQty', 'executedQty', 'status', 'type', 'side',
+              'commission', 'commissionAsset']
     createarchive(archivename, header, logdata)
 
 def createorderlogfileoco(membro, estrategia, orderresponse):
-    header = ['symbol', 'orderId', 'price', 'origQty', 'status', 'type', 'side', 'stopPrice']
+    header = ['symbol', 'orderId', 'orderListId', 'listClientOrderId', 'origQty', 'price', 'status', 'type', 'side', 'stopPrice']
     date = datetime.today().strftime('%d-%m-%Y')
-    archivename = membro + estrategia + date + "oco.csv"
+    archivename = membro + estrategia + date + "OCO.csv"
     reports = orderresponse['orderReports']
     logdata = []
     for report in reports:
         logdata.append(report['symbol'])
         logdata.append(report['orderId'])
-        logdata.append(report['price'])
+        logdata.append(orderresponse['orderListId'])
+        logdata.append(orderresponse['listClientOrderId'])
         logdata.append(report['origQty'])
+        logdata.append(report['price'])
         logdata.append(report['status'])
         logdata.append(report['type'])
         logdata.append(report['side'])
@@ -228,7 +231,7 @@ def makeorder(dataclient):
         params = organizeordersparams(strategies[data]['coins'],
                                       strategies[data]['capital_disponivel'])
         print("sending buy orders from client:" + dataclient['membro'] + "indice:" + data)
-        sendorder(params, dataclient['membro'], data, apikey, apisecret)
+        """sendorder(params, dataclient['membro'], data, apikey, apisecret)"""
         print("sending oco orders from client:" + dataclient['membro'] + "indice:" + data)
 
         filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, params['SELLOCO'].items()))

@@ -68,6 +68,25 @@ def findleftcoins(apikey, apisecret, member):
 
 findleftcoins('kt5kVIm9wK7364XBDj9l2lVgFPuCiJgRiFrnYB9O2cTPNLXeCj5O7S4WvXGiaXtC','J4dHP27qNLaLzCr4cE6XqOfm9Asaqj7Gbhkd29j7oWE6dHCrLBGhvW9j3yU01t2M','fernando_ipiranga')
 
+def cancelOrder(apikey, apisecret, coin, orderId, origClientOrderId):
+    params = {
+        "symbol": coin,
+        "orderId": orderId,
+        "origClientOrderId": origClientOrderId,
+        "recvWindow": 1000,
+    }
+    client = Client(apikey, apisecret)
+    response = client.cancel_order(**params)
+
+def canceloco(apikey, apisecret, coin, orderListId, listClientOrderId):
+    params = {
+        "symbol": "BTCUSDT",
+        "orderListId": orderListId,
+        "listClientOrderId": listClientOrderId,
+        "recvWindow": 1000,
+    }
+    client = Client(apikey, apisecret)
+    response = client.cancel_oco_order(**params)
 
 
 #verificar saldo da moedas(lock) e validar se as mesmas estavam nas ordens de ontem
