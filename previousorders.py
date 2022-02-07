@@ -9,7 +9,7 @@ from utils import getquantity, sendorder
 
 
 def getbalance(apikey, apisecret):
-    coinsbalance= []
+    coinsbalance = []
     spot_client = Client(apikey, apisecret)
     try:
         response = spot_client.account()
@@ -24,7 +24,7 @@ def getbalance(apikey, apisecret):
         logging.error("Something went wrong when retrive the client balance " + e)
 
 
-def  readarchive(archivename, type):
+def readarchive(archivename, type):
     file_exists = os.path.exists(archivename)
     coins = {}
     try:
@@ -42,48 +42,55 @@ def  readarchive(archivename, type):
         print("Something went wrong when create order archive " + e)
         logging.error("Something went wrong when create order archive  " + e)
 
+
 def definelist(type, row, coins):
     coin = {}
     if type > 1:
         if row[0] in coins:
             existentcoin = coins[row[0]]
-            existentcoin[row[1]] = {'orderId': row[1], 'orderListId': row[2], 'listClientOrderId': row[3], 'origQty': row[4]}
+            existentcoin[row[1]] = {'orderId': row[1], 'orderListId': row[2], 'listClientOrderId': row[3],
+                                    'origQty': row[4]}
             coins.update(existentcoin)
         else:
             coin[row[0]] = {}
-            coin[row[0]][row[1]] = {'orderId': row[1], 'orderListId': row[2], 'listClientOrderId': row[3], 'origQty': row[4]}
+            coin[row[0]][row[1]] = {'orderId': row[1], 'orderListId': row[2], 'listClientOrderId': row[3],
+                                    'origQty': row[4]}
             coins.update(coin)
     else:
         coin[row[0]] = {'orderId': row[1], 'clientOrderId': row[3], 'executedQty': row[4]}
         coins.update(coin)
 
+
 def findleftcoins(apikey, apisecret, member):
     memberscoin = getbalance(apikey, apisecret)
     previousdate = datetime.datetime.today() - datetime.timedelta(days=1)
-    buyarchivename = 'fernando_ipirangadiario20-01-2022BUY.csv'#member + 'diario' + previousdate.strftime('%d-%m-%Y') + 'BUY.csv'
+    buyarchivename = 'fernando_ipirangadiario20-01-2022BUY.csv'  # member + 'diario' + previousdate.strftime('%d-%m-%Y') + 'BUY.csv'
     ocoarchivename = 'fernando_ipirangadiario20-01-2022OCO.csv'  # member + 'diario' + previousdate.strftime('%d-%m-%Y') + 'OCO.csv'
     boughtcoins = readarchive(buyarchivename, 1)
     ococoins = readarchive(ocoarchivename, 2)
     for member in memberscoin:
         if member['asset'] in boughtcoins:
             if getquantity(member['asset']['orderid'], member['asset'], apikey, apisecret) < 0:
-                        orderId = ococoins[member['asset']].keys()[0]
-                        quantity = definequantity(apikey, apisecret, ococoins[member['asset']].keys(), member['asset'])
-                        if quantity > 0:
-                            canceloco(apikey, apisecret, member['asset'], ococoins[member['asset']][orderId]['orderListId'],
-                                      ococoins[member['asset']][orderId]['listClientOrderId'])
-                            params = {
-                                "symbol": member['asset'],
-                                "side": "SELL",
-                                "type": "MARKET",
-                                "quantity": quantity,
-                            }
-                            sendorder(apikey, apisecret, params)
+                orderId = ococoins[member['asset']].keys()[0]
+                quantity = definequantity(apikey, apisecret, ococoins[member['asset']].keys(), member['asset'])
+                if quantity > 0:
+                    canceloco(apikey, apisecret, member['asset'], ococoins[member['asset']][orderId]['orderListId'],
+                              ococoins[member['asset']][orderId]['listClientOrderId'])
+                    params = {
+                        "symbol": member['asset'],
+                        "side": "SELL",
+                        "type": "MARKET",
+                        "quantity": quantity,
+                    }
+                    sendorder(apikey, apisecret, params)
 
             else:
                 canceloco(apikey, apisecret, member['asset'], member['orderId'], member['clientOrderId'])
 
-findleftcoins('kt5kVIm9wK7364XBDj9l2lVgFPuCiJgRiFrnYB9O2cTPNLXeCj5O7S4WvXGiaXtC','J4dHP27qNLaLzCr4cE6XqOfm9Asaqj7Gbhkd29j7oWE6dHCrLBGhvW9j3yU01t2M','fernando_ipiranga')
+
+findleftcoins('kt5kVIm9wK7364XBDj9l2lVgFPuCiJgRiFrnYB9O2cTPNLXeCj5O7S4WvXGiaXtC',
+              'J4dHP27qNLaLzCr4cE6XqOfm9Asaqj7Gbhkd29j7oWE6dHCrLBGhvW9j3yU01t2M', 'fernando_ipiranga')
+
 
 def definequantity(apikey, apisecret, ordersid, coin):
     quantity = 0
@@ -92,6 +99,7 @@ def definequantity(apikey, apisecret, ordersid, coin):
         quantity += getquantity(ordersid[i], coin, apikey, apisecret)
         i += 1
     return quantity
+
 
 def cancelOrder(apikey, apisecret, coin, orderId, origClientOrderId):
     params = {
@@ -103,6 +111,7 @@ def cancelOrder(apikey, apisecret, coin, orderId, origClientOrderId):
     client = Client(apikey, apisecret)
     response = client.cancel_order(**params)
 
+
 def canceloco(apikey, apisecret, coin, orderListId, listClientOrderId):
     params = {
         "symbol": "BTCUSDT",
@@ -112,7 +121,3 @@ def canceloco(apikey, apisecret, coin, orderListId, listClientOrderId):
     }
     client = Client(apikey, apisecret)
     response = client.cancel_oco_order(**params)
-
-
-#verificar saldo da moedas(lock) e validar se as mesmas estavam nas ordens de ontem
-#caso estejam , validar a quantidade que foi comprado olhando as ordens de compra""

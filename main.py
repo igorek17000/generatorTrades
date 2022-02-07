@@ -3,6 +3,7 @@ import logging
 import scheduleOco
 from keys import retrievevalidclientsinfos
 from order import makeorder
+from previousorders import findleftcoins
 
 from utils import configlog
 
@@ -25,8 +26,9 @@ def havemissingocos(keylist):
 print("retriving datas from sheets...")
 keyslist = retrievevalidclientsinfos()
 for data in keyslist:
- dataclient = makeorder(keyslist[data])
- keyslist[data].update(dataclient)
+    findleftcoins(keyslist[data]['apikey'], keyslist[data]['apisecret'], keyslist[data]['membro'])
+    dataclient = makeorder(keyslist[data])
+    keyslist[data].update(dataclient)
 
 
 if havemissingocos(keyslist) > 0:
