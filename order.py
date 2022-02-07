@@ -1,13 +1,9 @@
-import csv
+
 import math
-
-import os
-
-from datetime import datetime
 from binance.spot import Spot as Client
 import logging
 import sys
-from utils import configlog
+from utils import configlog, sendorder, sendoco, createorderlogfilebuy, createorderlogfileoco
 
 configlog()
 apikey = ''
@@ -57,15 +53,18 @@ def getquantity(quantity, symbol):
         logging.error("Something went wrong when validate coin's quantity " + e)
         sys.exit()
 
+
 def validateminnotional(quantity, price, symbol):
     try:
         exchange_info = exchangeinfo(apikey, apisecret, symbol)
         min_notional = exchange_info['symbols'][0]['filters'][3]['minNotional']
-        return (float(quantity)*float(price))>=float(min_notional)
+        return (float(quantity) * float(price)) >= float(min_notional)
     except Exception as e:
         print("Something went wrong when validate coin's quantity " + e)
         logging.error("Something went wrong when validate coin's quantity " + e)
         sys.exit()
+
+
 def formatpriceoco(price, symbol):
     try:
         exchange_info = exchangeinfo(apikey, apisecret, symbol)
@@ -145,7 +144,7 @@ def createocoorder(params, coin, investimentbalance):
         params['SELLOCO'][coin['Moeda']]['firstTarget']["price"] = formatpriceoco(
             float(coin['PrimeiroAlvo']), coin['Moeda'])
         params['SELLOCO'][coin['Moeda']]['secondTarget']["price"] = formatpriceoco(
-            float(coin['SegundoAlvo']) , coin['Moeda'])
+            float(coin['SegundoAlvo']), coin['Moeda'])
     else:
         params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = getquantity(apikey, apisecret, float(
             investimentbalance / float(params['SELLOCO'][coin['Moeda']]['price']) / 2), coin['Moeda'])
@@ -170,55 +169,7 @@ def organizeordersparams(coins, freebalance):
     return params
 
 
-def createorderlogfilebuy(membro, estrategia, orderresponse,quotOrderQty):
-    date = datetime.today().strftime('%d-%m-%Y')
-    archivename = membro + estrategia + date + "BUY.csv"
-    if quotOrderQty > 0:
-        logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['clientOrderId'], orderresponse['price'], quotOrderQty, orderresponse['executedQty'],
-                   orderresponse['status'], orderresponse['type'], orderresponse['side']]
-    else:
-        logdata = [orderresponse['symbol'], orderresponse['orderId'], 0, 0,
-                   0,
-                   0, '', '', '', 0, 0]
-    if quotOrderQty > 0 and orderresponse['status'] == 'FILLED':
-        logdata.append(orderresponse['fills'][0]['commission'])
-        logdata.append(orderresponse['fills'][0]['commissionAsset'])
-    header = ['symbol', 'orderId', 'clientOrderId', 'price', 'quotOrderQty', 'executedQty', 'status', 'type', 'side',
-              'commission', 'commissionAsset']
-    createarchive(archivename, header, logdata)
 
-def createorderlogfileoco(membro, estrategia, orderresponse):
-    header = ['symbol', 'orderId', 'orderListId', 'listClientOrderId', 'origQty', 'price', 'status', 'type', 'side', 'stopPrice']
-    date = datetime.today().strftime('%d-%m-%Y')
-    archivename = membro + estrategia + date + "OCO.csv"
-    reports = orderresponse['orderReports']
-    logdata = []
-    for report in reports:
-        logdata.append(report['symbol'])
-        logdata.append(report['orderId'])
-        logdata.append(orderresponse['orderListId'])
-        logdata.append(orderresponse['listClientOrderId'])
-        logdata.append(report['origQty'])
-        logdata.append(report['price'])
-        logdata.append(report['status'])
-        logdata.append(report['type'])
-        logdata.append(report['side'])
-        if report['type'] == 'STOP_LOSS_LIMIT':
-            logdata.append(report['stopPrice'])
-        createarchive(archivename, header, logdata)
-        logdata.clear()
-def  createarchive(archivename,header,logdata):
-    file_exists = os.path.exists(archivename)
-    try:
-        with open(archivename, 'a', newline='') as f:
-            write = csv.writer(f)
-            if not file_exists:
-                write.writerow(header)
-            write.writerow(logdata)
-    except Exception as e:
-        print("Something went wrong when create order archive " + e)
-        logging.error("Something went wrong when create order archive  " + e)
-        sys.exit()
 
 
 def makeorder(dataclient):
@@ -231,27 +182,22 @@ def makeorder(dataclient):
         params = organizeordersparams(strategies[data]['coins'],
                                       strategies[data]['capital_disponivel'])
         print("sending buy orders from client:" + dataclient['membro'] + "indice:" + data)
-        """sendorder(params, dataclient['membro'], data, apikey, apisecret)"""
+        sendingorder(params, dataclient['membro'], data, apikey, apisecret)
         print("sending oco orders from client:" + dataclient['membro'] + "indice:" + data)
 
         filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, params['SELLOCO'].items()))
 
-        sendoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
+        sendingoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
 
         strategies[data]['orders'] = params
     return dataclient
 
 
-
-
-def sendorder(params, membro, strategy, apikey, apisecret):
-    client = Client(apikey, apisecret)
-
+def sendingorder(params, membro, strategy, apikey, apisecret):
     for param in params['BUY']:
-
         orderdata = params['BUY'][param]
         try:
-            response = client.new_order(**orderdata)
+            response = sendorder(apikey, apisecret, orderdata)
             if params['BUY'][param]['type'] == 'MARKET':
                 createorderlogfilebuy(membro, strategy, response, params['BUY'][param]['quoteOrderQty'])
             else:
@@ -270,13 +216,13 @@ def sendorder(params, membro, strategy, apikey, apisecret):
                 'symbol'])
 
 
-def sendoco(params, membro, strategy, apikey, apisecret):
-    client = Client(apikey, apisecret)
+def sendingoco(params, membro, strategy, apikey, apisecret):
     responseoco = {}
     try:
         for param in params:
 
-            if validateminnotional( params[param]['firstTarget']['quantity'], params[param]['firstTarget']['price'], params[param]['symbol']):
+            if validateminnotional(params[param]['firstTarget']['quantity'], params[param]['firstTarget']['price'],
+                                   params[param]['symbol']):
                 if params[param]['canCreateOco'] and params[param]['secondTarget'] and params[param]['firstTarget']:
                     paramfirst = {'symbol': params[param]['symbol'], 'side': params[param]['side'],
                                   'quantity': params[param]['firstTarget']['quantity'],
@@ -285,14 +231,14 @@ def sendoco(params, membro, strategy, apikey, apisecret):
                                   'stopLimitPrice': params[param]['stopLimitPrice'],
                                   'stopLimitTimeInForce': params[param]['stopLimitTimeInForce'], }
 
-                    responseoco['firstTarget'] = client.new_oco_order(**paramfirst)
+                    responseoco['firstTarget'] = sendoco(apikey, apisecret, **paramfirst)
                     paramsecond = {'symbol': params[param]['symbol'], 'side': params[param]['side'],
                                    'quantity': params[param]['secondTarget']['quantity'],
                                    'price': params[param]['secondTarget']['price'],
                                    'stopPrice': params[param]['stopPrice'],
                                    'stopLimitPrice': params[param]['stopLimitPrice'],
                                    'stopLimitTimeInForce': params[param]['stopLimitTimeInForce'], }
-                    responseoco['secondTarget'] = client.new_oco_order(**paramsecond)
+                    responseoco['secondTarget'] = sendoco(apikey, apisecret, **paramsecond)
                 elif params[param]['canCreateOco']:
                     paramfirst = {'symbol': params[param]['symbol'], 'side': params[param]['side'],
                                   'quantity': params[param]['firstTarget']['quantity'],
@@ -300,10 +246,11 @@ def sendoco(params, membro, strategy, apikey, apisecret):
                                   'stopPrice': params[param]['stopPrice'],
                                   'stopLimitPrice': params[param]['stopLimitPrice'],
                                   'stopLimitTimeInForce': params[param]['stopLimitTimeInForce'], }
-                    responseoco['firstTarget'] = client.new_oco_order(**paramfirst)
+                    responseoco['firstTarget'] = sendoco(apikey, apisecret, **paramfirst)
                 params[param]['executed'] = 1
             else:
-                logging.error("Something went wrong when send oco for member:"+membro+" and coin:" +params[param]['symbol'] + "the quantityXprice is lower than min_notional")
+                logging.error("Something went wrong when send oco for member:" + membro + " and coin:" + params[param][
+                    'symbol'] + "the quantityXprice is lower than min_notional")
             for response in responseoco:
                 createorderlogfileoco(membro, strategy, responseoco[response])
 

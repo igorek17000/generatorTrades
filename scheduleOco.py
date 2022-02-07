@@ -1,10 +1,7 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
-from binance.spot import Spot as Client
-
 import logging
-
 import order
-from utils import configlog
+from utils import configlog, getquantity, sendoco, createorderlogfileoco
 
 configlog()
 
@@ -12,21 +9,9 @@ sched = BlockingScheduler()
 clientsdata = {}
 
 
-def getquantity(orderid, symbol, apikey, apisecret):
-    client = Client(apikey, apisecret)
-    try:
-        response = client.get_order(symbol, orderId=orderid)
-        if response['status'] == 'FILLED':
-            return response['executedQty']
-        else:
-            return 0
-    except Exception as e:
-        print("Something went wrong when request order info " + e)
-        logging.error("Something went wrong when request order info " + e)
 
 
-def sendoco(params, membro, strategy, apikey, apisecret):
-    client = Client(apikey, apisecret)
+def sendingoco(params, membro, strategy, apikey, apisecret):
     responseoco = {}
     try:
         if order.validateminnotional(params['firstTarget']['quantity'], params['firstTarget']['price'],
@@ -39,14 +24,14 @@ def sendoco(params, membro, strategy, apikey, apisecret):
                               'stopLimitPrice': params['stopLimitPrice'],
                               'stopLimitTimeInForce': params['stopLimitTimeInForce'], }
 
-                responseoco['firstTarget'] = client.new_oco_order(**paramfirst)
+                responseoco['firstTarget'] = sendoco(apikey, apisecret, **paramfirst)
                 paramsecond = {'symbol': params['symbol'], 'side': params['side'],
                                'quantity': params['secondTarget']['quantity'],
                                'price': params['secondTarget']['price'],
                                'stopPrice': params['stopPrice'],
                                'stopLimitPrice': params['stopLimitPrice'],
                                'stopLimitTimeInForce': params['stopLimitTimeInForce'], }
-                responseoco['secondTarget'] = client.new_oco_order(**paramsecond)
+                responseoco['secondTarget'] = sendoco(apikey, apisecret, **paramsecond)
             elif params['canCreateOco']:
                 paramfirst = {'symbol': params['symbol'], 'side': params['side'],
                               'quantity': params['firstTarget']['quantity'],
@@ -54,13 +39,13 @@ def sendoco(params, membro, strategy, apikey, apisecret):
                               'stopPrice': params['stopPrice'],
                               'stopLimitPrice': params['stopLimitPrice'],
                               'stopLimitTimeInForce': params['stopLimitTimeInForce'], }
-                responseoco['firstTarget'] = client.new_oco_order(**paramfirst)
+                responseoco['firstTarget'] = sendoco(apikey, apisecret, **paramfirst)
             params['executed'] = 1
         else:
             logging.error("Something went wrong when send oco for member:" + membro + " and coin:" + params[
                 'symbol'] + "the quantityXprice is lower than min_notional")
         for response in responseoco:
-            order.createorderlogfileoco(membro, strategy, responseoco[response])
+            createorderlogfileoco(membro, strategy, responseoco[response])
 
     except Exception as e:
         print("Something went wrong when send sell orders " + e)
