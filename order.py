@@ -1,9 +1,9 @@
 
 import math
-from binance.spot import Spot as Client
 import logging
 import sys
-from utils import configlog, sendorder, sendoco, createorderlogfilebuy, createorderlogfileoco
+from utils import configlog, sendorder, sendoco, createorderlogfilebuy, createorderlogfileoco, reorganizequantity, \
+    exchangeinfo, getquantitycoin
 
 configlog()
 apikey = ''
@@ -19,17 +19,6 @@ def gettype(coin):
         return 'MARKET'
 
 
-def exchangeinfo(apikey, apisecret, symbol):
-    try:
-        client = Client(apikey, apisecret)
-        exchange_info = client.exchange_info(symbol=symbol)
-        return exchange_info
-    except Exception as e:
-        print("Something went wrong when retrive exchangeinfo " + e)
-        logging.error("Something went wrong when retrive exchangeinfo" + e)
-        sys.exit()
-
-
 def investimentbalancegreaterthanlimit(investimentbalance, symbol):
     try:
         exchange_info = exchangeinfo(apikey, apisecret, symbol)
@@ -42,16 +31,7 @@ def investimentbalancegreaterthanlimit(investimentbalance, symbol):
         sys.exit()
 
 
-def getquantity(quantity, symbol):
-    try:
-        exchange_info = exchangeinfo(apikey, apisecret, symbol)
-        lot_size = exchange_info['symbols'][0]['filters'][2]['minQty']
-        precision = (str(lot_size).split('.')[1]).find('1') + 1
-        return math.floor(float(quantity) * 10 ** precision) / 10 ** precision
-    except Exception as e:
-        print("Something went wrong when validate coin's quantity " + e)
-        logging.error("Something went wrong when validate coin's quantity " + e)
-        sys.exit()
+
 
 
 def validateminnotional(quantity, price, symbol):
@@ -78,11 +58,6 @@ def formatpriceoco(price, symbol):
         sys.exit()
 
 
-def reorganizequantity(params, moeda, quantity):
-    quantityplustax = quantity * 0.999
-    params[moeda]['firstTarget']["quantity"] = getquantity(quantityplustax / 2, moeda)
-    params[moeda]['secondTarget']["quantity"] = getquantity(quantityplustax / 2, moeda)
-    params[moeda]['canCreateOco'] = 1
 
 
 def createbuyorder(params, coin, investimentbalance):
@@ -107,12 +82,12 @@ def createbuyorder(params, coin, investimentbalance):
         params['BUY'][coin['Moeda']]["timeInForce"] = "GTC"
         params['BUY'][coin['Moeda']]["stopPrice"] = float(coin['ValorCompra'])
         params['BUY'][coin['Moeda']]["price"] = float(coin['ValorCompra'])
-        params['BUY'][coin['Moeda']]["quantity"] = getquantity(float(
+        params['BUY'][coin['Moeda']]["quantity"] = getquantitycoin(float(
             investimentbalance / float(params['BUY'][coin['Moeda']]['price'])), coin['Moeda'])
     elif gettype(coin) == 'LIMIT':
         params['BUY'][coin['Moeda']]["timeInForce"] = "GTC"
         params['BUY'][coin['Moeda']]["price"] = float(coin['ValorCompra'])
-        params['BUY'][coin['Moeda']]["quantity"] = getquantity(float(
+        params['BUY'][coin['Moeda']]["quantity"] = getquantitycoin(float(
             investimentbalance / float(params['BUY'][coin['Moeda']]['price'])), coin['Moeda'])
 
 
@@ -146,7 +121,7 @@ def createocoorder(params, coin, investimentbalance):
         params['SELLOCO'][coin['Moeda']]['secondTarget']["price"] = formatpriceoco(
             float(coin['SegundoAlvo']), coin['Moeda'])
     else:
-        params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = getquantity(apikey, apisecret, float(
+        params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = getquantitycoin(float(
             investimentbalance / float(params['SELLOCO'][coin['Moeda']]['price']) / 2), coin['Moeda'])
         params['SELLOCO'][coin['Moeda']]['firstTarget']["price"] = formatpriceoco(
             float(coin['PrimeiroAlvo']) - (float(coin['PrimeiroAlvo']) * 0.005), coin['Moeda'])
@@ -204,7 +179,7 @@ def sendingorder(params, membro, strategy, apikey, apisecret):
                 createorderlogfilebuy(membro, strategy, response, 0)
             if params['BUY'][param]['type'] == 'MARKET' and response['status'] == 'FILLED':
                 quantity = response['executedQty']
-                reorganizequantity(params['SELLOCO'], params['BUY'][param]['symbol'], float(quantity))
+                reorganizequantity(params['SELLOCO'], params['BUY'][param]['symbol'], float(quantity), 1)
                 params['BUY'][param]['executed'] = 1
             else:
                 params['BUY'][param]['orderId'] = response['orderId']
@@ -231,14 +206,14 @@ def sendingoco(params, membro, strategy, apikey, apisecret):
                                   'stopLimitPrice': params[param]['stopLimitPrice'],
                                   'stopLimitTimeInForce': params[param]['stopLimitTimeInForce'], }
 
-                    responseoco['firstTarget'] = sendoco(apikey, apisecret, **paramfirst)
+                    responseoco['firstTarget'] = sendoco(apikey, apisecret, paramfirst)
                     paramsecond = {'symbol': params[param]['symbol'], 'side': params[param]['side'],
                                    'quantity': params[param]['secondTarget']['quantity'],
                                    'price': params[param]['secondTarget']['price'],
                                    'stopPrice': params[param]['stopPrice'],
                                    'stopLimitPrice': params[param]['stopLimitPrice'],
                                    'stopLimitTimeInForce': params[param]['stopLimitTimeInForce'], }
-                    responseoco['secondTarget'] = sendoco(apikey, apisecret, **paramsecond)
+                    responseoco['secondTarget'] = sendoco(apikey, apisecret, paramsecond)
                 elif params[param]['canCreateOco']:
                     paramfirst = {'symbol': params[param]['symbol'], 'side': params[param]['side'],
                                   'quantity': params[param]['firstTarget']['quantity'],
@@ -246,7 +221,7 @@ def sendingoco(params, membro, strategy, apikey, apisecret):
                                   'stopPrice': params[param]['stopPrice'],
                                   'stopLimitPrice': params[param]['stopLimitPrice'],
                                   'stopLimitTimeInForce': params[param]['stopLimitTimeInForce'], }
-                    responseoco['firstTarget'] = sendoco(apikey, apisecret, **paramfirst)
+                    responseoco['firstTarget'] = sendoco(apikey, apisecret, paramfirst)
                 params[param]['executed'] = 1
             else:
                 logging.error("Something went wrong when send oco for member:" + membro + " and coin:" + params[param][

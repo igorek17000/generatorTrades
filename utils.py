@@ -1,3 +1,4 @@
+import math
 import sys
 from datetime import datetime
 from binance.spot import Spot as Client
@@ -17,8 +18,10 @@ def getquantity(orderid, symbol, apikey, apisecret):
         response = client.get_order(symbol, orderId=orderid)
         if response['status'] == 'FILLED':
             return response['executedQty']
-        else:
+        elif response['status'] == 'CANCELED':
             return -1
+        else:
+            return 0
     except Exception as e:
         print("Something went wrong when request order info " + e)
         logging.error("Something went wrong when request order info " + e)
@@ -87,3 +90,37 @@ def createarchive(archivename, header, logdata):
         print("Something went wrong when create order archive " + e)
         logging.error("Something went wrong when create order archive  " + e)
         sys.exit()
+
+
+def exchangeinfo(apikey, apisecret, symbol):
+    try:
+        client = Client(apikey, apisecret)
+        exchange_info = client.exchange_info(symbol=symbol)
+        return exchange_info
+    except Exception as e:
+        print("Something went wrong when retrive exchangeinfo " + e)
+        logging.error("Something went wrong when retrive exchangeinfo" + e)
+        sys.exit()
+
+def getquantitycoin(quantity, symbol):
+    apikey = ''
+    apisecret = ''
+    try:
+        exchange_info = exchangeinfo(apikey, apisecret, symbol)
+        lot_size = exchange_info['symbols'][0]['filters'][2]['minQty']
+        precision = (str(lot_size).split('.')[1]).find('1') + 1
+        return math.floor(float(quantity) * 10 ** precision) / 10 ** precision
+    except Exception as e:
+        print("Something went wrong when validate coin's quantity " + e)
+        logging.error("Something went wrong when validate coin's quantity " + e)
+        sys.exit()
+
+
+def reorganizequantity(params, moeda, quantity, type):
+    if type == 1:
+        quantityplustax = quantity * 0.999
+    elif type == 2:
+        quantityplustax = quantity
+    params[moeda]['firstTarget']["quantity"] = getquantitycoin(quantityplustax / 2, moeda)
+    params[moeda]['secondTarget']["quantity"] = getquantitycoin(quantityplustax / 2, moeda)
+    params[moeda]['canCreateOco'] = 1

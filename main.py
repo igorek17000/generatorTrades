@@ -9,6 +9,7 @@ from utils import configlog
 
 configlog()
 
+
 def havemissingocos(keylist):
     count = 0
     for data in keyslist:
@@ -23,18 +24,13 @@ def havemissingocos(keylist):
             count += 1
     return count
 
+
 print("retriving datas from sheets...")
 keyslist = retrievevalidclientsinfos()
 for data in keyslist:
-    findleftcoins(keyslist[data]['apikey'], keyslist[data]['apisecret'], keyslist[data]['membro'])
+    findleftcoins(keyslist[data]['api_key'], keyslist[data]['api_secret'], keyslist[data]['membro'])
     dataclient = makeorder(keyslist[data])
     keyslist[data].update(dataclient)
-
-
 if havemissingocos(keyslist) > 0:
     print("starting searching for limit and stop loss limit buy orders ")
     scheduleOco.inicializevariables(keyslist)
-
-
-
-

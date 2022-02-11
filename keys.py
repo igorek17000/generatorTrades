@@ -94,5 +94,5 @@ def retrievevalidclientsinfos():
 
     except Exception as e:
         print("Something went wrong when retriving client's credentials " + e)
-        logging.error(e)
+        logging.error("Something went wrong when retriving client's credentials " + e)
         sys.exit()
