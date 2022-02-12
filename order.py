@@ -153,17 +153,13 @@ def makeorder(dataclient):
     strategies = dataclient['strategies']
 
     for data in strategies:
-        print("organizing orders from client:" + dataclient['membro'] + " index:" + data)
+        print("organizing orders from client: " + dataclient['membro'] + " index:" + data)
         params = organizeordersparams(strategies[data]['coins'],
                                       strategies[data]['capital_disponivel'])
-        print("sending buy orders from client:" + dataclient['membro'] + "indice:" + data)
+        print("sending buy orders from client: " + dataclient['membro'] + "indice:" + data)
         sendingorder(params, dataclient['membro'], data, apikey, apisecret)
-        print("sending oco orders from client:" + dataclient['membro'] + "indice:" + data)
-
         filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, params['SELLOCO'].items()))
-
         sendingoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
-
         strategies[data]['orders'] = params
     return dataclient
 
@@ -187,11 +183,12 @@ def sendingorder(params, membro, strategy, apikey, apisecret):
         except Exception as e:
             pass
             print("Something went wrong when buy orders, for details look to error.log")
-            logging.error("Something went wrong when buy coins for member:" + membro + " and coin: " + orderdata[
+            logging.error("Something went wrong when buy coins for member: " + membro + " and coin: " + orderdata[
                 'symbol'])
 
 
 def sendingoco(params, membro, strategy, apikey, apisecret):
+    print("sending oco orders from client: " + membro + "indice:" + strategy)
     responseoco = {}
     try:
         for param in params:
@@ -224,7 +221,7 @@ def sendingoco(params, membro, strategy, apikey, apisecret):
                     responseoco['firstTarget'] = sendoco(apikey, apisecret, paramfirst)
                 params[param]['executed'] = 1
             else:
-                logging.error("Something went wrong when send oco for member:" + membro + " and coin:" + params[param][
+                logging.error("Something went wrong when send oco for member: " + membro + " and coin:" + params[param][
                     'symbol'] + "the quantityXprice is lower than min_notional")
             for response in responseoco:
                 createorderlogfileoco(membro, strategy, responseoco[response])

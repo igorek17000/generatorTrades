@@ -1,3 +1,4 @@
+import json
 import math
 import sys
 from datetime import datetime
@@ -8,7 +9,11 @@ import os
 
 def configlog():
     date = datetime.today().strftime('%d-%m-%Y')
-    filename = "error" + date + ".log"
+    pathaplication = os.getcwd()
+    foldererrors = os.path.join(pathaplication, 'errorlog')
+    if not os.path.isdir(foldererrors):
+        os.makedirs(foldererrors)
+    filename = foldererrors + "/error" + date + ".log"
     logging.basicConfig(filename=filename, format='%(name)s - %(levelname)s - %(message)s')
 
 
@@ -38,7 +43,13 @@ def sendoco(apikey, apisecret, params):
 
 def createorderlogfilebuy(membro, estrategia, orderresponse, quotOrderQty):
     date = datetime.today().strftime('%d-%m-%Y')
-    archivename = membro + estrategia + date + "BUY.csv"
+
+    pathaplication = os.getcwd()
+    folderbuys = os.path.join(pathaplication, 'BUY')
+    if not os.path.isdir(folderbuys):
+        os.makedirs(folderbuys)
+
+    archivename = folderbuys + "/" + membro + estrategia + date + "BUY.csv"
     if quotOrderQty > 0:
         logdata = [orderresponse['symbol'], orderresponse['orderId'], orderresponse['clientOrderId'],
                    orderresponse['price'], quotOrderQty, orderresponse['executedQty'],
@@ -59,7 +70,14 @@ def createorderlogfileoco(membro, estrategia, orderresponse):
     header = ['symbol', 'orderId', 'orderListId', 'listClientOrderId', 'origQty', 'price', 'status', 'type', 'side',
               'stopPrice']
     date = datetime.today().strftime('%d-%m-%Y')
-    archivename = membro + estrategia + date + "OCO.csv"
+
+    pathaplication = os.getcwd()
+    folderoco = os.path.join(pathaplication, 'OCO')
+    if not os.path.isdir(folderoco):
+        os.makedirs(folderoco)
+
+    archivename = folderoco + "/" + membro + estrategia + date + "OCO.csv"
+
     reports = orderresponse['orderReports']
     logdata = []
     for report in reports:
@@ -124,3 +142,19 @@ def reorganizequantity(params, moeda, quantity, type):
     params[moeda]['firstTarget']["quantity"] = getquantitycoin(quantityplustax / 2, moeda)
     params[moeda]['secondTarget']["quantity"] = getquantitycoin(quantityplustax / 2, moeda)
     params[moeda]['canCreateOco'] = 1
+
+
+def createdatafile(dataset):
+    date = datetime.today().strftime('%d-%m-%Y')
+
+    pathaplication = os.getcwd()
+    folderdataset = os.path.join(pathaplication, 'datas')
+    if not os.path.isdir(folderdataset):
+        os.makedirs(folderdataset)
+    archivename = folderdataset + "/" + date + ".json"
+    file_exists = os.path.exists(archivename)
+    if not file_exists:
+        datalog = json.dumps(dataset)
+        # Writing to sample.json
+        with open(archivename, "w") as outfile:
+            outfile.write(datalog)

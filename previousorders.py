@@ -69,11 +69,12 @@ def definelist(type, row, coins):
 
 
 def findleftcoins(apikey, apisecret, member):
+    print('Verifying remaining orders and ocos for ' + member)
     memberscoin = getbalance(apikey, apisecret)
     previousdate = datetime.datetime.today() - datetime.timedelta(days=1)
     currentydate = datetime.datetime.today()
-    buyarchivename = member + 'diario' + previousdate.strftime('%d-%m-%Y') + 'BUY.csv'
-    ocoarchivename = member + 'diario' + previousdate.strftime('%d-%m-%Y') + 'OCO.csv'
+    buyarchivename = 'BUY/' + member + 'diario' + previousdate.strftime('%d-%m-%Y') + 'BUY.csv'
+    ocoarchivename = 'OCO/' + member + 'diario' + previousdate.strftime('%d-%m-%Y') + 'OCO.csv'
     ocoarchivenametoday = member + 'diario' + currentydate.strftime('%d-%m-%Y') + 'OCO.csv'
     coin = {}
     boughtcoins = readarchive(buyarchivename, 1, coin)
@@ -90,26 +91,28 @@ def findleftcoins(apikey, apisecret, member):
             if asset:
                 boughtquantity = float(getquantity(boughtcoins[boughtcoin]['orderId'], boughtcoin, apikey, apisecret))
                 if boughtquantity > 0:
-                    orderId = extractkeyvalue(ococoins[boughtcoin].keys(), 1)
-                    orderquantitys = definequantity(apikey, apisecret, ococoins[boughtcoin].keys(), boughtcoin)
-                    totalquantity = orderquantitys[orderId]['quantity'] + \
-                                    orderquantitys[extractkeyvalue(ococoins[boughtcoin].keys(), 2)]['quantity']
-                    if totalquantity == 0:
-                        canceloco(apikey, apisecret, boughtcoin, ococoins[boughtcoin][orderId]['orderListId'],
-                                  ococoins[boughtcoin][orderId]['listClientOrderId'], member)
-                        orderId = extractkeyvalue(ococoins[boughtcoin].keys(), 2)
-                        canceloco(apikey, apisecret, boughtcoin, ococoins[boughtcoin][orderId]['orderListId'],
-                                  ococoins[boughtcoin][orderId]['listClientOrderId'], member)
-                        prepareordertosend(apikey, apisecret, boughtcoin, boughtquantity, member)
-                    elif totalquantity > 0:
-                        if orderquantitys[orderId]['quantity'] == 0:
+                    if boughtcoin in ococoins.keys():
+                        orderId = extractkeyvalue(ococoins[boughtcoin].keys(), 1)
+                        orderquantitys = definequantity(apikey, apisecret, ococoins[boughtcoin].keys(), boughtcoin)
+                        totalquantity = orderquantitys[orderId]['quantity'] + \
+                                        orderquantitys[extractkeyvalue(ococoins[boughtcoin].keys(), 2)]['quantity']
+                        if totalquantity == 0:
                             canceloco(apikey, apisecret, boughtcoin, ococoins[boughtcoin][orderId]['orderListId'],
                                       ococoins[boughtcoin][orderId]['listClientOrderId'], member)
-                        orderId = extractkeyvalue(ococoins[boughtcoin].keys(), 2)
-                        if orderquantitys[orderId]['quantity'] == 0:
+                            orderId = extractkeyvalue(ococoins[boughtcoin].keys(), 2)
                             canceloco(apikey, apisecret, boughtcoin, ococoins[boughtcoin][orderId]['orderListId'],
                                       ococoins[boughtcoin][orderId]['listClientOrderId'], member)
+                        elif totalquantity > 0:
+                            if orderquantitys[orderId]['quantity'] == 0:
+                                canceloco(apikey, apisecret, boughtcoin, ococoins[boughtcoin][orderId]['orderListId'],
+                                          ococoins[boughtcoin][orderId]['listClientOrderId'], member)
+                            orderId = extractkeyvalue(ococoins[boughtcoin].keys(), 2)
+                            if orderquantitys[orderId]['quantity'] == 0:
+                                canceloco(apikey, apisecret, boughtcoin, ococoins[boughtcoin][orderId]['orderListId'],
+                                          ococoins[boughtcoin][orderId]['listClientOrderId'], member)
                         prepareordertosend(apikey, apisecret, boughtcoin, totalquantity, member)
+                    else:
+                        prepareordertosend(apikey, apisecret, boughtcoin, boughtquantity, member)
                 else:
                     cancelOrder(apikey, apisecret, boughtcoin, boughtcoins[boughtcoin]['orderId'],
                                 boughtcoins[boughtcoin]['clientOrderId'], member)
@@ -145,8 +148,8 @@ def cancelOrder(apikey, apisecret, coin, orderId, origClientOrderId, member):
         response = client.cancel_order(**params)
     except Exception as e:
         pass
-        print("Something went wrong when cancel remaining buy order for " + member)
-        logging.error("Something went wrong when cancel remaining buy order for " + member)
+        print('Something went wrong when cancel remaining buy order for ' + member + ' coin: ' + coin)
+        logging.error('Something went wrong when cancel remaining buy order for ' + member + ' coin: ' + coin)
 
 def canceloco(apikey, apisecret, coin, orderListId, listClientOrderId, member):
     params = {
@@ -159,8 +162,8 @@ def canceloco(apikey, apisecret, coin, orderListId, listClientOrderId, member):
         response = client.cancel_oco_order(**params)
     except Exception as e:
         pass
-        print("Something went wrong when cancel remaining buy order for " + member)
-        logging.error("Something went wrong when cancel remaining buy order for " + member)
+        print("Something went wrong when cancel remaining buy order for " + member  + ' coin: ' + coin)
+        logging.error("Something went wrong when cancel remaining buy order for " + member + ' coin: ' + coin)
 
 
 def prepareordertosend(apikey, apisecret, boughtcoin, totalquantity, member):
@@ -174,5 +177,5 @@ def prepareordertosend(apikey, apisecret, boughtcoin, totalquantity, member):
         sendorder(apikey, apisecret, params)
     except Exception as e:
         pass
-        print('Something went wrong when sell remaining '+ boughtcoin + ' for ' + member)
-        logging.error('Something went wrong when sell remaining '+ boughtcoin + ' for ' + member)
+        print('Something went wrong when sell remaining ' + boughtcoin + ' for ' + member)
+        logging.error('Something went wrong when sell remaining ' + boughtcoin + ' for ' + member)

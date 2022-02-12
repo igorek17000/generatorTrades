@@ -5,7 +5,7 @@ from keys import retrievevalidclientsinfos
 from order import makeorder
 from previousorders import findleftcoins
 
-from utils import configlog
+from utils import configlog, createdatafile
 
 configlog()
 
@@ -27,10 +27,13 @@ def havemissingocos(keylist):
 
 print("retriving datas from sheets...")
 keyslist = retrievevalidclientsinfos()
+
 for data in keyslist:
     findleftcoins(keyslist[data]['api_key'], keyslist[data]['api_secret'], keyslist[data]['membro'])
     dataclient = makeorder(keyslist[data])
+    createdatafile(keyslist)
     keyslist[data].update(dataclient)
+
 if havemissingocos(keyslist) > 0:
     print("starting searching for limit and stop loss limit buy orders ")
     scheduleOco.inicializevariables(keyslist)
