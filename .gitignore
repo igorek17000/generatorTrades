@@ -98,3 +98,5 @@ modules.xml
 *.csv
 *.log
 *.json
+dist/
+build/
