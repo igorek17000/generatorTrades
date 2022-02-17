@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import scheduleOco
 from keys import retrievevalidclientsinfos
@@ -23,17 +24,27 @@ def havemissingocos(keylist):
 
             count += 1
     return count
-
-
 print("retriving datas from sheets...")
 keyslist = retrievevalidclientsinfos()
 
-for data in keyslist:
-    findleftcoins(keyslist[data]['api_key'], keyslist[data]['api_secret'], keyslist[data]['membro'])
-    dataclient = makeorder(keyslist[data])
-    createdatafile(keyslist)
-    keyslist[data].update(dataclient)
+print("Choose what you want to do:")
+print("1- just cancel orders from day before")
+print("2- do all process")
+try:
+    value = int(input("input the option: "))
+except Exception as e:
+    print('error')
+    sys.exit()
+if value > 1:
+    for data in keyslist:
+        findleftcoins(keyslist[data]['api_key'], keyslist[data]['api_secret'], keyslist[data]['membro'])
+        dataclient = makeorder(keyslist[data])
+        createdatafile(keyslist)
+        keyslist[data].update(dataclient)
 
-if havemissingocos(keyslist) > 0:
-    print("starting searching for limit and stop loss limit buy orders ")
-    scheduleOco.inicializevariables(keyslist)
+    if havemissingocos(keyslist) > 0:
+        print("starting searching for limit and stop loss limit buy orders ")
+        scheduleOco.inicializevariables(keyslist)
+else:
+    for data in keyslist:
+        findleftcoins(keyslist[data]['api_key'], keyslist[data]['api_secret'], keyslist[data]['membro'])
