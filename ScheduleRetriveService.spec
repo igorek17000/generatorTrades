@@ -11,7 +11,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 block_cipher = None
 
 
-a = Analysis(['main.py'],
+a = Analysis(['ScheduleRetriveService.py'],
              pathex=[],
              binaries=binaries,
              datas=datas,
@@ -33,7 +33,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,  
           [],
-          name='main',
+          name='ScheduleRetriveService',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,

@@ -11,10 +11,10 @@ from utils import configlog, createdatafile
 configlog()
 
 
-def havemissingocos(keylist):
+def havemissingocos(keyslist):
     count = 0
     for data in keyslist:
-        buyOrders = keylist[data]['strategies']['diario']['orders']['BUY']
+        buyOrders = keyslist[data]['strategies']['diario']['orders']['BUY']
         filteredorders = dict(filter(lambda elem: elem[1]['type'] != 'MARKET', buyOrders.items()))
         if len(filteredorders) == 0:
             buyOrders.clear()

@@ -20,7 +20,7 @@ def configlog():
 def getquantity(orderid, symbol, apikey, apisecret):
     client = Client(apikey, apisecret)
     try:
-        response = client.get_order(symbol, orderId=orderid)
+        response = client.get_order(symbol, orderId=orderid, recvWindow=60000)
         if response['status'] == 'FILLED':
             return response['executedQty']
         elif response['status'] == 'CANCELED':
@@ -28,8 +28,9 @@ def getquantity(orderid, symbol, apikey, apisecret):
         else:
             return 0
     except Exception as e:
-        print("Something went wrong when request order info " + e)
-        logging.error("Something went wrong when request order info " + e)
+        errorStack = str(e)
+        print("Something went wrong when request order info error: " + errorStack)
+        logging.error("Something went wrong when request order info error: " + errorStack)
 
 
 def sendorder(apikey, apisecret, params):
@@ -105,8 +106,9 @@ def createarchive(archivename, header, logdata):
                 write.writerow(header)
             write.writerow(logdata)
     except Exception as e:
-        print("Something went wrong when create order archive " + e)
-        logging.error("Something went wrong when create order archive  " + e)
+        errorStack = str(e)
+        print("Something went wrong when create order archive error: " + errorStack)
+        logging.error("Something went wrong when create order archive  error: " + errorStack)
         sys.exit()
 
 
@@ -116,8 +118,9 @@ def exchangeinfo(apikey, apisecret, symbol):
         exchange_info = client.exchange_info(symbol=symbol)
         return exchange_info
     except Exception as e:
-        print("Something went wrong when retrive exchangeinfo " + e)
-        logging.error("Something went wrong when retrive exchangeinfo" + e)
+        errorStack = str(e)
+        print("Something went wrong when retrive exchangeinfo error: " + errorStack)
+        logging.error("Something went wrong when retrive exchangeinfo error: " + errorStack)
         sys.exit()
 
 def getquantitycoin(quantity, symbol):
@@ -129,8 +132,9 @@ def getquantitycoin(quantity, symbol):
         precision = (str(lot_size).split('.')[1]).find('1') + 1
         return math.floor(float(quantity) * 10 ** precision) / 10 ** precision
     except Exception as e:
-        print("Something went wrong when validate coin's quantity " + e)
-        logging.error("Something went wrong when validate coin's quantity " + e)
+        errorStack = str(e)
+        print('Something went wrong when validate coins quantity error: ' + errorStack)
+        logging.error('Something went wrong when validate coins quantity error: ' + errorStack)
         sys.exit()
 
 

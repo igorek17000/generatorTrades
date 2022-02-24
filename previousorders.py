@@ -11,8 +11,9 @@ from utils import getquantity, sendorder
 def getbalance(apikey, apisecret):
     coinsbalance = []
     spot_client = Client(apikey, apisecret)
+    params = {'recvWindow': 60000}
     try:
-        response = spot_client.account()
+        response = spot_client.account(**params)
         spotbalance = response['balances']
         validspotbalance = [x
                             for x in spotbalance
@@ -20,8 +21,9 @@ def getbalance(apikey, apisecret):
                             ]
         return validspotbalance
     except Exception as e:
-        print("Something went wrong when retrive the client balance " + e)
-        logging.error("Something went wrong when retrive the client balance " + e)
+        errorStack = str(e)
+        print("Something went wrong when retrive the client balance " + errorStack)
+        logging.error("Something went wrong when retrive the client balance " + errorStack)
 
 
 def readarchive(archivename, type, coins):
@@ -39,8 +41,9 @@ def readarchive(archivename, type, coins):
                         line_count += 1
         return coins
     except Exception as e:
-        print("Something went wrong when create order archive " + e)
-        logging.error("Something went wrong when create order archive  " + e)
+        errorStack = str(e)
+        print("Something went wrong when create order archive " + errorStack)
+        logging.error("Something went wrong when create order archive  " + errorStack)
 
 
 def definelist(type, row, coins):
@@ -148,8 +151,9 @@ def cancelOrder(apikey, apisecret, coin, orderId, origClientOrderId, member):
         response = client.cancel_order(**params)
     except Exception as e:
         pass
-        print('Something went wrong when cancel remaining buy order for ' + member + ' coin: ' + coin)
-        logging.error('Something went wrong when cancel remaining buy order for ' + member + ' coin: ' + coin)
+        errorStack = str(e)
+        print('Something went wrong when cancel remaining buy order for ' + member + ' coin: ' + coin + ' error: ' + errorStack)
+        logging.error('Something went wrong when cancel remaining buy order for ' + member + ' coin: ' + coin + ' error: ' + errorStack)
 
 def canceloco(apikey, apisecret, coin, orderListId, listClientOrderId, member):
     params = {
@@ -162,8 +166,9 @@ def canceloco(apikey, apisecret, coin, orderListId, listClientOrderId, member):
         response = client.cancel_oco_order(**params)
     except Exception as e:
         pass
-        print("Something went wrong when cancel remaining buy order for " + member  + ' coin: ' + coin)
-        logging.error("Something went wrong when cancel remaining buy order for " + member + ' coin: ' + coin)
+        errorStack = str(e)
+        print("Something went wrong when cancel remaining buy order for " + member  + ' coin: ' + coin + ' error: ' + errorStack)
+        logging.error("Something went wrong when cancel remaining buy order for " + member + ' coin: ' + coin + ' error: ' + errorStack)
 
 
 def prepareordertosend(apikey, apisecret, boughtcoin, totalquantity, member):
@@ -177,5 +182,6 @@ def prepareordertosend(apikey, apisecret, boughtcoin, totalquantity, member):
         sendorder(apikey, apisecret, params)
     except Exception as e:
         pass
-        print('Something went wrong when sell remaining ' + boughtcoin + ' for ' + member)
-        logging.error('Something went wrong when sell remaining ' + boughtcoin + ' for ' + member)
+        errorStack = str(e)
+        print('Something went wrong when sell remaining ' + boughtcoin + ' for ' + member + ' error: ' + errorStack)
+        logging.error('Something went wrong when sell remaining ' + boughtcoin + ' for ' + member + ' error: ' + errorStack)

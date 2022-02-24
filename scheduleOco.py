@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -47,12 +48,14 @@ def sendingoco(params, membro, strategy, apikey, apisecret):
             createorderlogfileoco(membro, strategy, responseoco[response])
 
     except Exception as e:
-        print("Something went wrong when send sell orders " + e)
-        logging.error("Something went wrong when send sell orders  " + e)
+        errorStack = str(e)
+        print("Something went wrong when send sell orders " + errorStack)
+        logging.error("Something went wrong when send sell orders  " + errorStack)
 
 
 @sched.scheduled_job('interval', minutes=10)
 def timed_job():
+    count = 0
     for client in clientsdata:
         dattime = datetime.today().strftime('%d-%m-%Y %H:%M:%S')
         print("looking for sell orders from client " + client + ' date: ' + dattime)
@@ -70,11 +73,25 @@ def timed_job():
         filteredorders = dict(filter(lambda elem: elem[1]['executed'] < 1, buyOrders.items()))
         buyOrders.clear()
         buyOrders.update(filteredorders)
-        #verificar se o cliente está vazio e tirar da lista
-        #se lista vazia parar execução
+        count += len(filteredorders)
+        if count == 0:
+            sys.exit()
 
 def inicializevariables(data):
     global clientsdata
     clientsdata = data
     timed_job()
     sched.start()
+
+def havemissingocos(keyslist):
+    count = 0
+    for data in keyslist:
+        buyOrders = keyslist[data]['strategies']['diario']['orders']['BUY']
+        filteredorders = dict(filter(lambda elem: elem[1]['type'] != 'MARKET', buyOrders.items()))
+        if len(filteredorders) == 0:
+            buyOrders.clear()
+        else:
+            buyOrders.clear()
+            buyOrders.update(filteredorders)
+            count += 1
+    return count

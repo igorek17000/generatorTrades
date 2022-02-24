@@ -13,13 +13,15 @@ clientsdata = {}
 
 def getpermissions(apikey, apisecret):
     spot_client = Client(apikey, apisecret, show_header=True)
+    params = {'recvWindow': 60000}
     try:
-        response = spot_client.api_key_permissions()
+        response = spot_client.api_key_permissions(**params)
         keypermissresponse = response['data']
         return keypermissresponse
     except Exception as e:
-        print("Something went wrong:" + e)
-        logging.error(e)
+        errorStack = str(e)
+        print("Something went wrong:" + errorStack)
+        logging.error(errorStack)
         sys.exit()
 
 
@@ -93,6 +95,7 @@ def retrievevalidclientsinfos():
         return clientsdata
 
     except Exception as e:
-        print("Something went wrong when retriving client's credentials " + e)
-        logging.error("Something went wrong when retriving client's credentials " + e)
+        errorStack = str(e)
+        print("Something went wrong when retriving client's credentials " + errorStack)
+        logging.error("Something went wrong when retriving client's credentials " + errorStack)
         sys.exit()

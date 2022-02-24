@@ -26,8 +26,9 @@ def investimentbalancegreaterthanlimit(investimentbalance, symbol):
         max_price = exchange_info['symbols'][0]['filters'][0]['maxPrice']
         return float(min_price) <= float(investimentbalance) <= float(max_price)
     except Exception as e:
-        print("Something went wrong when validate coin's min investiment " + e)
-        logging.error("Something went wrong when validate coin's min investiment " + e)
+        errorStack = str(e)
+        print("Something went wrong when validate coin's min investiment " + errorStack)
+        logging.error("Something went wrong when validate coin's min investiment " + errorStack)
         sys.exit()
 
 
@@ -40,8 +41,9 @@ def validateminnotional(quantity, price, symbol):
         min_notional = exchange_info['symbols'][0]['filters'][3]['minNotional']
         return (float(quantity) * float(price)) >= float(min_notional)
     except Exception as e:
-        print("Something went wrong when validate coin's quantity " + e)
-        logging.error("Something went wrong when validate coin's quantity " + e)
+        errorStack = str(e)
+        print("Something went wrong when validate coin's quantity " + errorStack)
+        logging.error("Something went wrong when validate coin's quantity " + errorStack)
         sys.exit()
 
 
@@ -53,8 +55,9 @@ def formatpriceoco(price, symbol):
         return math.floor(float(price) * 10 ** precision) / 10 ** precision
 
     except Exception as e:
-        print("Something went wrong when validate coin's quantity " + e)
-        logging.error("Something went wrong when validate coin's quantity " + e)
+        errorStack = str(e)
+        print("Something went wrong when validate coin's quantity " + errorStack)
+        logging.error("Something went wrong when validate coin's quantity " + errorStack)
         sys.exit()
 
 
@@ -68,6 +71,7 @@ def createbuyorder(params, coin, investimentbalance):
             "symbol": coin['Moeda'],
             "side": "BUY",
             "type": gettype(coin),
+            'recvWindow': 60000,
         }
     else:
         params['BUY'] = {}
@@ -99,7 +103,8 @@ def createocoorder(params, coin, investimentbalance):
             "symbol": coin['Moeda'],
             "side": "SELL",
             "stopLimitTimeInForce": "GTC",
-            "canCreateOco": 0
+            "canCreateOco": 0,
+            'recvWindow': 60000,
         }
     else:
         params['SELLOCO'] = {}
@@ -109,7 +114,8 @@ def createocoorder(params, coin, investimentbalance):
             "symbol": coin['Moeda'],
             "side": "SELL",
             "stopLimitTimeInForce": "GTC",
-            "canCreateOco": 0
+            "canCreateOco": 0,
+            'recvWindow': 60000,
         }
     params['SELLOCO'][coin['Moeda']]['firstTarget'] = {}
     if coin['PrimeiroAlvo'] and coin['SegundoAlvo']:
@@ -182,9 +188,10 @@ def sendingorder(params, membro, strategy, apikey, apisecret):
                 params['BUY'][param]['executed'] = 0
         except Exception as e:
             pass
+            errorStack = str(e)
             print("Something went wrong when buy orders, for details look to error.log")
             logging.error("Something went wrong when buy coins for member: " + membro + " and coin: " + orderdata[
-                'symbol'])
+                'symbol'] + ' error: ' + errorStack)
 
 
 def sendingoco(params, membro, strategy, apikey, apisecret):
@@ -227,5 +234,6 @@ def sendingoco(params, membro, strategy, apikey, apisecret):
                 createorderlogfileoco(membro, strategy, responseoco[response])
 
     except Exception as e:
-        print("Something went wrong when send sell orders " + e)
-        logging.error("Something went wrong when send sell orders  " + e)
+        errorStack = str(e)
+        print("Something went wrong when send sell orders " + errorStack)
+        logging.error("Something went wrong when send sell orders  " + errorStack)
