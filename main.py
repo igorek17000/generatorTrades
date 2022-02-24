@@ -41,7 +41,7 @@ if value > 1:
         dataclient = makeorder(keyslist[data])
         createdatafile(keyslist)
         keyslist[data].update(dataclient)
-
+    createdatafile(keyslist)
     if havemissingocos(keyslist) > 0:
         print("starting searching for limit and stop loss limit buy orders ")
         scheduleOco.inicializevariables(keyslist)

@@ -22,7 +22,7 @@ def sendingoco(params, membro, strategy, apikey, apisecret):
                               'price': params['firstTarget']['price'],
                               'stopPrice': params['stopPrice'],
                               'stopLimitPrice': params['stopLimitPrice'],
-                              'stopLimitTimeInForce': params['stopLimitTimeInForce'], }
+                              'stopLimitTimeInForce': params['stopLimitTimeInForce'], 'recvWindow': 60000}
 
                 responseoco['firstTarget'] = sendoco(apikey, apisecret, paramfirst)
                 paramsecond = {'symbol': params['symbol'], 'side': params['side'],
@@ -30,7 +30,7 @@ def sendingoco(params, membro, strategy, apikey, apisecret):
                                'price': params['secondTarget']['price'],
                                'stopPrice': params['stopPrice'],
                                'stopLimitPrice': params['stopLimitPrice'],
-                               'stopLimitTimeInForce': params['stopLimitTimeInForce'], }
+                               'stopLimitTimeInForce': params['stopLimitTimeInForce'], 'recvWindow': 60000 }
                 responseoco['secondTarget'] = sendoco(apikey, apisecret, paramsecond)
             elif params['canCreateOco']:
                 paramfirst = {'symbol': params['symbol'], 'side': params['side'],
@@ -38,7 +38,7 @@ def sendingoco(params, membro, strategy, apikey, apisecret):
                               'price': params['firstTarget']['price'],
                               'stopPrice': params['stopPrice'],
                               'stopLimitPrice': params['stopLimitPrice'],
-                              'stopLimitTimeInForce': params['stopLimitTimeInForce'], }
+                              'stopLimitTimeInForce': params['stopLimitTimeInForce'], 'recvWindow': 60000 }
                 responseoco['firstTarget'] = sendoco(apikey, apisecret, **paramfirst)
             params['executed'] = 1
         else:
