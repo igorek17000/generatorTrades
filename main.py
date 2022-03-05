@@ -39,7 +39,6 @@ if value > 1:
     for data in keyslist:
         findleftcoins(keyslist[data]['api_key'], keyslist[data]['api_secret'], keyslist[data]['membro'])
         dataclient = makeorder(keyslist[data])
-        createdatafile(keyslist)
         keyslist[data].update(dataclient)
     createdatafile(keyslist)
     if havemissingocos(keyslist) > 0:
