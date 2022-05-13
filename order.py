@@ -166,6 +166,9 @@ def makeorder(dataclient):
         sendingorder(params, dataclient['membro'], data, apikey, apisecret)
         filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, params['SELLOCO'].items()))
         sendingoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
+
+
+
         strategies[data]['orders'] = params
     return dataclient
 

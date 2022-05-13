@@ -36,12 +36,15 @@ def validatepermissions(apikey, apisecret):
 def organizedata(balance, operations):
     strategy = {}
     coins = []
-    strategy = {'strategy': balance['Estrategia'], 'capital_disponivel': balance['capital_disponivel'].replace('$', '').replace('.', '').replace(',', '.')}
+    strategy = {'strategy': balance['Estrategia'],
+                'capital_disponivel': balance['capital_disponivel'].replace('$', '').replace('.', '').replace(',', '.')}
     for operation in operations:
         coin = {'Moeda': operation['Moeda'],
                 'FlagCompraValida': operation['FlagCompraValida'],
                 'TipoCompra': operation['TipoCompra'],
-                'ValorCompra': "-" if operation['ValorCompra'] == '-' else operation['ValorCompra'].replace('$', '').replace('.', '').replace(',', '.'),
+                'ValorCompra': "-" if operation['ValorCompra'] == '-' else operation['ValorCompra'].replace('$',
+                                                                                                            '').replace(
+                    '.', '').replace(',', '.'),
                 'Aporte%': operation['Aporte%'].replace('%', '').replace(',', '.'),
                 'Aporte($)': operation['Aporte($)'].replace('$', '').replace('.', '').replace(',', '.'),
                 'PrimeiroAlvo': operation['PrimeiroAlvo'].replace('$', '').replace('.', '').replace(',', '.'),
@@ -64,19 +67,13 @@ def organizedata(balance, operations):
 
 def retrievevalidclientsinfos():
     try:
-        scope = ['https://spreadsheets.google.com/feeds',
-                 'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
-        client = gspread.authorize(creds)
-
-        sheet = client.open("Contato_Bot_Messias").get_worksheet(0)
-        balances = sheet.get_all_records()
+        balances = retrivesheets("Contato_Bot_Messias", 0)
         balances = [x
                     for x in balances
-                    if x['api_key'] and x['api_secret']
+                    if x['api_key'] and x['api_secret'] and validatepermissions(x['api_key'], x['api_secret'])
                     ]
-        sheet = client.open("Contato_Bot_Messias").get_worksheet(1)
-        operations = sheet.get_all_records()
+
+        operations = retrivesheets("Contato_Bot_Messias", 1)
         operations = [x
                       for x in operations
                       if x['Moeda'] and x['FlagCompraValida']
@@ -86,12 +83,11 @@ def retrievevalidclientsinfos():
                       ]
 
         for data in balances:
-            if validatepermissions(data['api_key'], data['api_secret']):
-                operation = [x
-                             for x in operations
-                             if (x['Membro'] == data['Membro']) and (x['Estrategia'] == data['Estrategia'])
-                             ]
-                organizedata(data, operation)
+            operation = [x
+                         for x in operations
+                         if (x['Membro'] == data['Membro']) and (x['Estrategia'] == data['Estrategia'])
+                         ]
+            organizedata(data, operation)
         return clientsdata
 
     except Exception as e:
@@ -99,3 +95,13 @@ def retrievevalidclientsinfos():
         print("Something went wrong when retriving client's credentials " + errorStack)
         logging.error("Something went wrong when retriving client's credentials " + errorStack)
         sys.exit()
+
+def retrivesheets(sheet, guide):
+    scope = ['https://spreadsheets.google.com/feeds',
+             'https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('client_secret.json', scope)
+    client = gspread.authorize(creds)
+
+    sheet = client.open(sheet).get_worksheet(guide)
+
+    return sheet.get_all_records()
