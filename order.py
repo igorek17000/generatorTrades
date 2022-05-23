@@ -16,8 +16,8 @@ def makeorder(dataclient):
 
     for data in strategies:
         print("sending buy orders from client: " + dataclient['membro'] + "indice:" + data)
-        sendingorder(data['orders'], dataclient['membro'], data, apikey, apisecret)
-        filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, data['orders']['SELLOCO'].items()))
+        sendingorder(strategies[data]['orders'], dataclient['membro'], data, apikey, apisecret)
+        filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, strategies[data]['orders']['SELLOCO'].items()))
         sendingoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
     return dataclient
 
