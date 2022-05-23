@@ -16,6 +16,19 @@ def configlog():
     filename = foldererrors + "/error" + date + ".log"
     logging.basicConfig(filename=filename, format='%(name)s - %(levelname)s - %(message)s')
 
+def investimentbalancegreaterthanlimit(investimentbalance, symbol):
+    apikey = ''
+    apisecret = ''
+    try:
+        exchange_info = exchangeinfo(apikey, apisecret, symbol)
+        min_price = exchange_info['symbols'][0]['filters'][0]['minPrice']
+        max_price = exchange_info['symbols'][0]['filters'][0]['maxPrice']
+        return float(min_price) <= float(investimentbalance) <= float(max_price)
+    except Exception as e:
+        errorStack = str(e)
+        print("Something went wrong when validate coin's min investiment " + errorStack)
+        logging.error("Something went wrong when validate coin's min investiment " + errorStack)
+        sys.exit()
 
 def getquantity(orderid, symbol, apikey, apisecret):
     client = Client(apikey, apisecret)
@@ -32,6 +45,19 @@ def getquantity(orderid, symbol, apikey, apisecret):
         print("Something went wrong when request order info error: " + errorStack)
         logging.error("Something went wrong when request order info error: " + errorStack)
 
+
+def validateminnotional(quantity, price, symbol):
+    apikey = ''
+    apisecret = ''
+    try:
+        exchange_info = exchangeinfo(apikey, apisecret, symbol)
+        min_notional = exchange_info['symbols'][0]['filters'][3]['minNotional']
+        return (float(quantity) * float(price)) >= float(min_notional)
+    except Exception as e:
+        errorStack = str(e)
+        print("Something went wrong when validate coin's quantity " + errorStack)
+        logging.error("Something went wrong when validate coin's quantity " + errorStack)
+        sys.exit()
 
 def sendorder(apikey, apisecret, params):
     client = Client(apikey, apisecret)
@@ -162,3 +188,30 @@ def createdatafile(dataset):
         # Writing to sample.json
         with open(archivename, "w") as outfile:
             outfile.write(datalog)
+
+
+def formatpriceoco(price, symbol):
+    apikey = ''
+    apisecret = ''
+    try:
+        exchange_info = exchangeinfo(apikey, apisecret, symbol)
+        lot_size = exchange_info['symbols'][0]['filters'][0]['minPrice']
+        precision = (str(lot_size).split('.')[1]).find('1') + 1
+        return math.floor(float(price) * 10 ** precision) / 10 ** precision
+
+    except Exception as e:
+        errorStack = str(e)
+        print("Something went wrong when validate coin's quantity " + errorStack)
+        logging.error("Something went wrong when validate coin's quantity " + errorStack)
+        sys.exit()
+
+
+
+
+def gettypeorder(coin):
+    if coin['TipoCompra'].lower().find('tocando') > -1:
+        return 'LIMIT'
+    if coin['TipoCompra'].lower().find('acima') > -1:
+        return 'STOP_LOSS_LIMIT'
+    elif coin['TipoCompra'].lower().find('market') > -1:
+        return 'MARKET'
