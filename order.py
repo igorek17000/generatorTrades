@@ -2,156 +2,12 @@
 import math
 import logging
 import sys
+import time
+
 from utils import configlog, sendorder, sendoco, createorderlogfilebuy, createorderlogfileoco, reorganizequantity, \
-    exchangeinfo, getquantitycoin
+    exchangeinfo, getquantitycoin, validateminnotional
 
 configlog()
-apikey = ''
-apisecret = ''
-
-
-def gettype(coin):
-    if coin['TipoCompra'].lower().find('tocando') > -1:
-        return 'LIMIT'
-    if coin['TipoCompra'].lower().find('acima') > -1:
-        return 'STOP_LOSS_LIMIT'
-    elif coin['TipoCompra'].lower().find('market') > -1:
-        return 'MARKET'
-
-
-def investimentbalancegreaterthanlimit(investimentbalance, symbol):
-    try:
-        exchange_info = exchangeinfo(apikey, apisecret, symbol)
-        min_price = exchange_info['symbols'][0]['filters'][0]['minPrice']
-        max_price = exchange_info['symbols'][0]['filters'][0]['maxPrice']
-        return float(min_price) <= float(investimentbalance) <= float(max_price)
-    except Exception as e:
-        errorStack = str(e)
-        print("Something went wrong when validate coin's min investiment " + errorStack)
-        logging.error("Something went wrong when validate coin's min investiment " + errorStack)
-        sys.exit()
-
-
-
-
-
-def validateminnotional(quantity, price, symbol):
-    try:
-        exchange_info = exchangeinfo(apikey, apisecret, symbol)
-        min_notional = exchange_info['symbols'][0]['filters'][3]['minNotional']
-        return (float(quantity) * float(price)) >= float(min_notional)
-    except Exception as e:
-        errorStack = str(e)
-        print("Something went wrong when validate coin's quantity " + errorStack)
-        logging.error("Something went wrong when validate coin's quantity " + errorStack)
-        sys.exit()
-
-
-def formatpriceoco(price, symbol):
-    try:
-        exchange_info = exchangeinfo(apikey, apisecret, symbol)
-        lot_size = exchange_info['symbols'][0]['filters'][0]['minPrice']
-        precision = (str(lot_size).split('.')[1]).find('1') + 1
-        return math.floor(float(price) * 10 ** precision) / 10 ** precision
-
-    except Exception as e:
-        errorStack = str(e)
-        print("Something went wrong when validate coin's quantity " + errorStack)
-        logging.error("Something went wrong when validate coin's quantity " + errorStack)
-        sys.exit()
-
-
-
-
-def createbuyorder(params, coin, investimentbalance):
-    if 'BUY' in params:
-        buy = params['BUY']
-        moeda = coin['Moeda']
-        buy[moeda] = {
-            "symbol": coin['Moeda'],
-            "side": "BUY",
-            "type": gettype(coin),
-            'recvWindow': 60000,
-        }
-    else:
-        params['BUY'] = {}
-        params['BUY'][coin['Moeda']] = {
-            "symbol": coin['Moeda'],
-            "side": "BUY",
-            "type": gettype(coin),
-        }
-    if gettype(coin) == 'MARKET':
-        params['BUY'][coin['Moeda']]["quoteOrderQty"] = investimentbalance
-    elif gettype(coin) == 'STOP_LOSS_LIMIT':
-        params['BUY'][coin['Moeda']]["timeInForce"] = "GTC"
-        params['BUY'][coin['Moeda']]["stopPrice"] = float(coin['ValorCompra'])
-        params['BUY'][coin['Moeda']]["price"] = float(coin['ValorCompra'])
-        params['BUY'][coin['Moeda']]["quantity"] = getquantitycoin(float(
-            investimentbalance / float(params['BUY'][coin['Moeda']]['price'])), coin['Moeda'])
-    elif gettype(coin) == 'LIMIT':
-        params['BUY'][coin['Moeda']]["timeInForce"] = "GTC"
-        params['BUY'][coin['Moeda']]["price"] = float(coin['ValorCompra'])
-        params['BUY'][coin['Moeda']]["quantity"] = getquantitycoin(float(
-            investimentbalance / float(params['BUY'][coin['Moeda']]['price'])), coin['Moeda'])
-
-
-def createocoorder(params, coin, investimentbalance):
-    if 'SELLOCO' in params:
-        selloco = params['SELLOCO']
-        moeda = coin['Moeda']
-        selloco[moeda] = {
-            "symbol": coin['Moeda'],
-            "side": "SELL",
-            "stopLimitTimeInForce": "GTC",
-            "canCreateOco": 0,
-            'recvWindow': 60000,
-        }
-    else:
-        params['SELLOCO'] = {}
-        params['SELLOCO'][coin['Moeda']] = {}
-
-        params['SELLOCO'][coin['Moeda']] = {
-            "symbol": coin['Moeda'],
-            "side": "SELL",
-            "stopLimitTimeInForce": "GTC",
-            "canCreateOco": 0,
-            'recvWindow': 60000,
-        }
-    params['SELLOCO'][coin['Moeda']]['firstTarget'] = {}
-    if coin['PrimeiroAlvo'] and coin['SegundoAlvo']:
-        params['SELLOCO'][coin['Moeda']]['secondTarget'] = {}
-        params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = 0
-        params['SELLOCO'][coin['Moeda']]['secondTarget']["quantity"] = 0
-        params['SELLOCO'][coin['Moeda']]['firstTarget']["price"] = formatpriceoco(
-            float(coin['PrimeiroAlvo']), coin['Moeda'])
-        params['SELLOCO'][coin['Moeda']]['secondTarget']["price"] = formatpriceoco(
-            float(coin['SegundoAlvo']), coin['Moeda'])
-    else:
-        params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = getquantitycoin(float(
-            investimentbalance / float(params['SELLOCO'][coin['Moeda']]['price']) / 2), coin['Moeda'])
-        params['SELLOCO'][coin['Moeda']]['firstTarget']["price"] = formatpriceoco(
-            float(coin['PrimeiroAlvo']) - (float(coin['PrimeiroAlvo']) * 0.005), coin['Moeda'])
-    params['SELLOCO'][coin['Moeda']]["stopPrice"] = formatpriceoco(float(coin['Stop']) - (float(coin['Stop']) * 0.005),
-                                                                   coin['Moeda'])
-
-    params['SELLOCO'][coin['Moeda']]["stopLimitPrice"] = formatpriceoco(
-        float(params['SELLOCO'][coin['Moeda']]["stopPrice"]) - float(
-            float(params['SELLOCO'][coin['Moeda']]["stopPrice"]) * 0.005), coin['Moeda'])
-
-
-def organizeordersparams(coins, freebalance):
-    params = {}
-
-    for coin in coins:
-        investimentbalance = float("{0:.2f}".format(float(freebalance) * (float(coin['Aporte%']) / 100)))
-        if investimentbalancegreaterthanlimit(investimentbalance, coin['Moeda']):
-            createbuyorder(params, coin, investimentbalance)
-            createocoorder(params, coin, investimentbalance)
-    return params
-
-
-
-
 
 def makeorder(dataclient):
     apikey = dataclient['api_key']
@@ -159,17 +15,10 @@ def makeorder(dataclient):
     strategies = dataclient['strategies']
 
     for data in strategies:
-        print("organizing orders from client: " + dataclient['membro'] + " index:" + data)
-        params = organizeordersparams(strategies[data]['coins'],
-                                      strategies[data]['capital_disponivel'])
         print("sending buy orders from client: " + dataclient['membro'] + "indice:" + data)
-        sendingorder(params, dataclient['membro'], data, apikey, apisecret)
-        filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, params['SELLOCO'].items()))
+        sendingorder(data['orders'], dataclient['membro'], data, apikey, apisecret)
+        filteredsellorders = dict(filter(lambda elem: elem[1]['canCreateOco'] > 0, data['orders']['SELLOCO'].items()))
         sendingoco(filteredsellorders, dataclient['membro'], data, apikey, apisecret)
-
-
-
-        strategies[data]['orders'] = params
     return dataclient
 
 
@@ -189,6 +38,7 @@ def sendingorder(params, membro, strategy, apikey, apisecret):
             else:
                 params['BUY'][param]['orderId'] = response['orderId']
                 params['BUY'][param]['executed'] = 0
+            time.sleep(0.075)
         except Exception as e:
             pass
             errorStack = str(e)
