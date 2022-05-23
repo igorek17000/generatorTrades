@@ -5,7 +5,7 @@ import gspread
 from binance.spot import Spot as Client
 from oauth2client.service_account import ServiceAccountCredentials
 
-from utils import configlog
+from utils import configlog, gettypeorder, getquantitycoin, formatpriceoco, investimentbalancegreaterthanlimit
 
 configlog()
 clientsdata = {}
@@ -65,6 +65,93 @@ def organizedata(balance, operations):
         clientsdata[balance['Membro']] = clientdata
 
 
+def createbuyorder(params, coin, investimentbalance):
+    if 'BUY' in params:
+        buy = params['BUY']
+        moeda = coin['Moeda']
+        buy[moeda] = {
+            "symbol": coin['Moeda'],
+            "side": "BUY",
+            "type": gettypeorder(coin),
+            'recvWindow': 60000,
+        }
+    else:
+        params['BUY'] = {}
+        params['BUY'][coin['Moeda']] = {
+            "symbol": coin['Moeda'],
+            "side": "BUY",
+            "type": gettypeorder(coin),
+        }
+    if gettypeorder(coin) == 'MARKET':
+        params['BUY'][coin['Moeda']]["quoteOrderQty"] = investimentbalance
+    elif gettypeorder(coin) == 'STOP_LOSS_LIMIT':
+        params['BUY'][coin['Moeda']]["timeInForce"] = "GTC"
+        params['BUY'][coin['Moeda']]["stopPrice"] = float(coin['ValorCompra'])
+        params['BUY'][coin['Moeda']]["price"] = float(coin['ValorCompra'])
+        params['BUY'][coin['Moeda']]["quantity"] = getquantitycoin(float(
+            investimentbalance / float(params['BUY'][coin['Moeda']]['price'])), coin['Moeda'])
+    elif gettypeorder(coin) == 'LIMIT':
+        params['BUY'][coin['Moeda']]["timeInForce"] = "GTC"
+        params['BUY'][coin['Moeda']]["price"] = float(coin['ValorCompra'])
+        params['BUY'][coin['Moeda']]["quantity"] = getquantitycoin(float(
+            investimentbalance / float(params['BUY'][coin['Moeda']]['price'])), coin['Moeda'])
+
+
+def createocoorder(params, coin, investimentbalance):
+    if 'SELLOCO' in params:
+        selloco = params['SELLOCO']
+        moeda = coin['Moeda']
+        selloco[moeda] = {
+            "symbol": coin['Moeda'],
+            "side": "SELL",
+            "stopLimitTimeInForce": "GTC",
+            "canCreateOco": 0,
+            'recvWindow': 60000,
+        }
+    else:
+        params['SELLOCO'] = {}
+        params['SELLOCO'][coin['Moeda']] = {}
+
+        params['SELLOCO'][coin['Moeda']] = {
+            "symbol": coin['Moeda'],
+            "side": "SELL",
+            "stopLimitTimeInForce": "GTC",
+            "canCreateOco": 0,
+            'recvWindow': 60000,
+        }
+    params['SELLOCO'][coin['Moeda']]['firstTarget'] = {}
+    if coin['PrimeiroAlvo'] and coin['SegundoAlvo']:
+        params['SELLOCO'][coin['Moeda']]['secondTarget'] = {}
+        params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = 0
+        params['SELLOCO'][coin['Moeda']]['secondTarget']["quantity"] = 0
+        params['SELLOCO'][coin['Moeda']]['firstTarget']["price"] = formatpriceoco(
+            float(coin['PrimeiroAlvo']), coin['Moeda'])
+        params['SELLOCO'][coin['Moeda']]['secondTarget']["price"] = formatpriceoco(
+            float(coin['SegundoAlvo']), coin['Moeda'])
+    else:
+        params['SELLOCO'][coin['Moeda']]['firstTarget']["quantity"] = getquantitycoin(float(
+            investimentbalance / float(params['SELLOCO'][coin['Moeda']]['price']) / 2), coin['Moeda'])
+        params['SELLOCO'][coin['Moeda']]['firstTarget']["price"] = formatpriceoco(
+            float(coin['PrimeiroAlvo']) - (float(coin['PrimeiroAlvo']) * 0.005), coin['Moeda'])
+    params['SELLOCO'][coin['Moeda']]["stopPrice"] = formatpriceoco(float(coin['Stop']) - (float(coin['Stop']) * 0.005),
+                                                                   coin['Moeda'])
+
+    params['SELLOCO'][coin['Moeda']]["stopLimitPrice"] = formatpriceoco(
+        float(params['SELLOCO'][coin['Moeda']]["stopPrice"]) - float(
+            float(params['SELLOCO'][coin['Moeda']]["stopPrice"]) * 0.005), coin['Moeda'])
+
+
+
+def organizeordersparams(coins, freebalance):
+    params = {}
+
+    for coin in coins:
+        investimentbalance = float("{0:.2f}".format(float(freebalance) * (float(coin['Aporte%']) / 100)))
+        if investimentbalancegreaterthanlimit(investimentbalance, coin['Moeda']):
+            createbuyorder(params, coin, investimentbalance)
+            createocoorder(params, coin, investimentbalance)
+    return params
+
 def retrievevalidclientsinfos():
     try:
         balances = retrivesheets("Contato_Bot_Messias", 0)
@@ -88,6 +175,9 @@ def retrievevalidclientsinfos():
                          if (x['Membro'] == data['Membro']) and (x['Estrategia'] == data['Estrategia'])
                          ]
             organizedata(data, operation)
+            if data['Estrategia'] == 'diario':
+                clientsdata[data['Membro']]['strategies']['diario']['orders'] = {}
+                clientsdata[data['Membro']]['strategies']['diario']['orders'] = organizeordersparams(clientsdata[data['Membro']]['strategies']['diario']['coins'], clientsdata[data['Membro']]['strategies']['diario']['capital_disponivel'])
         return clientsdata
 
     except Exception as e:
